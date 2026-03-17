@@ -1,1 +1,1 @@
-1.3.0 Added config options to change the UI Position of the value tracker. Default, Lower Right, Bottom Right, and Custom Coordinates.
+1.0.0 Forked as Map Value Tracker Plus. Added breakdown lines for carts, extraction, and remaining value plus config toggles.

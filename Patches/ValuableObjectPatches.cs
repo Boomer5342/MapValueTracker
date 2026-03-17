@@ -31,8 +31,9 @@ namespace MapValueTracker.Patches
         {
             if (SemiFunc.IsMasterClientOrSingleplayer())
             {
-                MapValueTracker.Logger.LogDebug("Created Valuable Object! " + __instance.name + " Val: " + __instance.dollarValueCurrent);
-                MapValueTracker.totalValue += __instance.dollarValueCurrent;
+                float current = MapValueTracker.GetValuableCurrent(__instance);
+                MapValueTracker.Logger.LogDebug("Created Valuable Object! " + __instance.name + " Val: " + current);
+                MapValueTracker.totalValue += current;
                 //MapValueTracker.CheckForItems();
                 MapValueTracker.Logger.LogDebug("After dollar value set Total Val: " + MapValueTracker.totalValue);
             }

@@ -21,7 +21,7 @@ namespace MapValueTracker.Patches
 
             ValuableObject vo = __instance?.GetComponent<ValuableObject>();
 
-            MapValueTracker.Logger.LogDebug("BreakRPC - Valuable Object current value: " + vo?.dollarValueCurrent);
+            MapValueTracker.Logger.LogDebug("BreakRPC - Valuable Object current value: " + (vo == null ? 0f : MapValueTracker.GetValuableCurrent(vo)));
             MapValueTracker.Logger.LogDebug("BreakRPC - Value lost: " + valueLost);
 
             MapValueTracker.totalValue -= valueLost;
@@ -39,11 +39,13 @@ namespace MapValueTracker.Patches
                 if (vo == null)
                     return;
                 MapValueTracker.Logger.LogDebug("Destroying (DPGO)!");
-                MapValueTracker.Logger.LogDebug("Destroyed Valuable Object! " + vo.name + " Val: " + vo.dollarValueCurrent);
-                if (vo.dollarValueCurrent < vo.dollarValueOriginal * 0.15f) //Workaround for duplicate destroyed objects vs extraction destruction
+                float current = MapValueTracker.GetValuableCurrent(vo);
+                float original = MapValueTracker.GetValuableOriginal(vo);
+                MapValueTracker.Logger.LogDebug("Destroyed Valuable Object! " + vo.name + " Val: " + current);
+                if (current < original * 0.15f) //Workaround for duplicate destroyed objects vs extraction destruction
                     MapValueTracker.totalValue -= 0;
                 else 
-                    MapValueTracker.totalValue -= vo.dollarValueCurrent;
+                    MapValueTracker.totalValue -= current;
                 MapValueTracker.Logger.LogDebug("After DPGO Map Remaining Val: " + MapValueTracker.totalValue);
             }
         }

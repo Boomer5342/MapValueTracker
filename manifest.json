@@ -1,7 +1,7 @@
 {
-	"name": "Map_Value_Tracker",
-	"version_number": "1.2.2",
-	"website_url": "https://github.com/tansinator/MapValueTracker",
-	"description": "Tracks all valuable items on the map. Updates in real-time.",
+	"name": "Map_Value_Tracker_Plus",
+	"version_number": "1.0.0",
+	"website_url": "",
+	"description": "Fork of Map Value Tracker by Tansinator. Adds map breakdown lines for carts, extraction, and remaining value.",
 	"dependencies": ["BepInEx-BepInExPack-5.4.2100"]
 }

@@ -23,6 +23,12 @@ namespace MapValueTracker.Config
         public static ConfigEntry<float> ValueRatio;
         public static ConfigEntry<Positions> UIPosition;
         public static ConfigEntry<Vector2> CustomPositionCoords;
+        public static ConfigEntry<bool> ShowBreakdownOnMap;
+        public static ConfigEntry<bool> ShowCartsValue;
+        public static ConfigEntry<bool> ShowExtractionValue;
+        public static ConfigEntry<bool> ShowRemainingValue;
+        public static ConfigEntry<int> BreakdownUpdateIntervalFrames;
+        public static ConfigEntry<bool> ReplaceHudMapWithRemaining;
 
         public static void Init(ConfigFile config)
         {
@@ -63,6 +69,42 @@ namespace MapValueTracker.Config
                 "CustomPositionCoords",
                 new Vector2(0, 0),
                 "Custom X,Y coordates of the Value Tracker UI element. Bottom Right corner is 0,0. Default position is 0,225."
+            );
+            ShowBreakdownOnMap = config.Bind(
+                "Breakdown",
+                "ShowBreakdownOnMap",
+                true,
+                "When true, shows extra value lines (Carts/Extraction/Remaining) while the map is open."
+            );
+            ShowCartsValue = config.Bind(
+                "Breakdown",
+                "ShowCartsValue",
+                true,
+                "When true, shows the total value currently inside carts."
+            );
+            ShowExtractionValue = config.Bind(
+                "Breakdown",
+                "ShowExtractionValue",
+                true,
+                "When true, shows the total value currently staged in extraction."
+            );
+            ShowRemainingValue = config.Bind(
+                "Breakdown",
+                "ShowRemainingValue",
+                true,
+                "When true, shows remaining value (Map minus Carts/Extraction)."
+            );
+            BreakdownUpdateIntervalFrames = config.Bind(
+                "Breakdown",
+                "BreakdownUpdateIntervalFrames",
+                10,
+                "How often (in frames) the breakdown values refresh while the map is open. Lower is more accurate, higher is lighter."
+            );
+            ReplaceHudMapWithRemaining = config.Bind(
+                "Breakdown",
+                "ReplaceHudMapWithRemaining",
+                false,
+                "When true, the always-on HUD line shows Remaining value instead of Map value."
             );
 
             ClearOrphanedEntries(config);

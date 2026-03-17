@@ -131,10 +131,44 @@ namespace MapValueTracker.Patches
                 SetCoordinates(component);
 
 
-                if (Configuration.StartingValueOnly.Value)
-                    MapValueTracker.valueText.SetText("Map: $" + MapValueTracker.totalValueInit.ToString("N0"));
-                else
-                    MapValueTracker.valueText.SetText("Map: $" + MapValueTracker.totalValue.ToString("N0"));
+                float mapValue = MapValueTracker.GetDisplayedMapValue();
+                bool mapOpen = SemiFunc.InputHold(InputKey.Map) || mapToggled;
+                float hudMapValue = mapValue;
+                if (!mapOpen && Configuration.ReplaceHudMapWithRemaining.Value)
+                {
+                    MapValueTracker.UpdateBreakdownCache(false, true);
+                    hudMapValue = Mathf.Max(0f, mapValue - MapValueTracker.cachedCartsValue - MapValueTracker.cachedExtractionValue);
+                }
+
+                string text = "Map: $" + hudMapValue.ToString("N0");
+
+                // Only expand the breakdown when the map is open to reduce HUD noise.
+                if (mapOpen && Configuration.ShowBreakdownOnMap.Value)
+                {
+                    MapValueTracker.UpdateBreakdownCache(mapOpen, false);
+                    float inCarts = 0f;
+                    float inExtraction = 0f;
+
+                    if (Configuration.ShowCartsValue.Value)
+                    {
+                        inCarts = MapValueTracker.cachedCartsValue;
+                        text += "\nCarts: $" + inCarts.ToString("N0");
+                    }
+
+                    if (Configuration.ShowExtractionValue.Value)
+                    {
+                        inExtraction = MapValueTracker.cachedExtractionValue;
+                        text += "\nExtraction: $" + inExtraction.ToString("N0");
+                    }
+
+                    if (Configuration.ShowRemainingValue.Value)
+                    {
+                        float remaining = Mathf.Max(0f, mapValue - inCarts - inExtraction);
+                        text += "\nRemaining: $" + remaining.ToString("N0");
+                    }
+                }
+
+                MapValueTracker.valueText.SetText(text);
                 
                 if (Configuration.AlwaysOn.Value)
                 {
@@ -148,7 +182,7 @@ namespace MapValueTracker.Patches
                         MapValueTracker.textInstance.SetActive(false);
                     return;
                 }
-                else if (SemiFunc.InputHold(InputKey.Map) || mapToggled)
+                else if (mapOpen)
                 {
                     MapValueTracker.textInstance.SetActive(true);
                 }
