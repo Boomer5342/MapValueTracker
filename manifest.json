@@ -1,6 +1,6 @@
 {
 	"name": "Map_Value_Tracker_Plus",
-	"version_number": "1.0.0",
+	"version_number": "1.0.1",
 	"website_url": "https://github.com/Boomer5342/MapValueTracker",
 	"description": "Fork of Map Value Tracker by Tansinator. Adds map breakdown lines for carts, extraction, and remaining value.",
 	"dependencies": ["BepInEx-BepInExPack-5.4.2100"]

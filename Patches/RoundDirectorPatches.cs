@@ -133,10 +133,12 @@ namespace MapValueTracker.Patches
 
                 float mapValue = MapValueTracker.GetDisplayedMapValue();
                 bool mapOpen = SemiFunc.InputHold(InputKey.Map) || mapToggled;
+                bool needCarts = Configuration.ShowCartsValue.Value || Configuration.ShowRemainingValue.Value;
+                bool needExtraction = Configuration.ShowExtractionValue.Value || Configuration.ShowRemainingValue.Value;
                 float hudMapValue = mapValue;
                 if (!mapOpen && Configuration.ReplaceHudMapWithRemaining.Value)
                 {
-                    MapValueTracker.UpdateBreakdownCache(false, true);
+                    MapValueTracker.UpdateBreakdownCache(false, true, true, true);
                     hudMapValue = Mathf.Max(0f, mapValue - MapValueTracker.cachedCartsValue - MapValueTracker.cachedExtractionValue);
                 }
 
@@ -145,7 +147,7 @@ namespace MapValueTracker.Patches
                 // Only expand the breakdown when the map is open to reduce HUD noise.
                 if (mapOpen && Configuration.ShowBreakdownOnMap.Value)
                 {
-                    MapValueTracker.UpdateBreakdownCache(mapOpen, false);
+                    MapValueTracker.UpdateBreakdownCache(mapOpen, false, needCarts, needExtraction);
                     float inCarts = 0f;
                     float inExtraction = 0f;
 

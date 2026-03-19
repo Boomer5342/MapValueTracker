@@ -23,6 +23,9 @@ Configuration variables:
 - ShowExtractionValue toggles the extraction value line.
 - ShowRemainingValue toggles the remaining value line.
 - BreakdownUpdateIntervalFrames controls how often the breakdown values refresh while the map is open.
+- CartRescanIntervalFrames controls how often the scene is rescanned for cart components.
+- EnableCartComponentCaching enables/disables caching of cart components.
+- EnableCartReflectionCaching enables/disables caching of cart reflection metadata.
 - ReplaceHudMapWithRemaining replaces the always-on HUD Map line with Remaining.
 
 Credits:

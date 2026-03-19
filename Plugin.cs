@@ -8,6 +8,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace MapValueTracker
 {
@@ -16,7 +17,7 @@ namespace MapValueTracker
     {
         public const string PLUGIN_GUID = "MapValueTrackerPlus";
         public const string PLUGIN_NAME = "Map Value Tracker Plus";
-        public const string PLUGIN_VERSION = "1.0.0";
+        public const string PLUGIN_VERSION = "1.0.1";
 
         public static new ManualLogSource Logger;
         private readonly Harmony harmony = new Harmony("MapValueTrackerPlus.REPO");
@@ -31,6 +32,11 @@ namespace MapValueTracker
         public static float cachedExtractionValue = 0f;
         private static int lastBreakdownFrame = -100000;
         private static bool lastMapOpen = false;
+        private static int lastCartScanFrame = -100000;
+        private static List<Component> cachedCartComponents = new List<Component>();
+        private static bool cartsDirty = true;
+        private static readonly Dictionary<Type, FieldInfo[]> cartFieldsCache = new Dictionary<Type, FieldInfo[]>();
+        private static readonly Dictionary<Type, PropertyInfo[]> cartPropsCache = new Dictionary<Type, PropertyInfo[]>();
 
         public void Awake()
         {
@@ -110,19 +116,44 @@ namespace MapValueTracker
         /// </summary>
         public static float ComputeValueInCarts()
         {
-            float sum = 0f;
             GetExtractionSets(out HashSet<ValuableObject> extractionValuables, out HashSet<GameObject> extractionObjects);
-            HashSet<ValuableObject> counted = new HashSet<ValuableObject>();
-            Component[] components = UnityEngine.Object.FindObjectsOfType<Component>();
+            return ComputeValueInCarts(extractionValuables, extractionObjects);
+        }
 
-            for (int i = 0; i < components.Length; i++)
+        private static void ComputeBreakdownValues(bool needCarts, bool needExtraction, out float cartsValue, out float extractionValue)
+        {
+            cartsValue = 0f;
+            extractionValue = 0f;
+
+            if (!needCarts && !needExtraction)
+                return;
+
+            GetExtractionSets(out HashSet<ValuableObject> extractionValuables, out HashSet<GameObject> extractionObjects);
+
+            if (needExtraction)
             {
-                Component comp = components[i];
-                if (comp == null)
-                    continue;
+                foreach (ValuableObject vo in extractionValuables)
+                {
+                    extractionValue += GetValuableCurrent(vo);
+                }
+            }
 
-                string typeName = comp.GetType().Name;
-                if (typeName.IndexOf("Cart", StringComparison.OrdinalIgnoreCase) < 0)
+            if (needCarts)
+            {
+                cartsValue = ComputeValueInCarts(extractionValuables, extractionObjects);
+            }
+        }
+
+        private static float ComputeValueInCarts(HashSet<ValuableObject> extractionValuables, HashSet<GameObject> extractionObjects)
+        {
+            float sum = 0f;
+            HashSet<ValuableObject> counted = new HashSet<ValuableObject>();
+            List<Component> cartComponents = GetCachedCartComponents();
+
+            for (int i = 0; i < cartComponents.Count; i++)
+            {
+                Component comp = cartComponents[i];
+                if (comp == null)
                     continue;
 
                 if (IsComponentInExtraction(comp, extractionObjects))
@@ -142,11 +173,58 @@ namespace MapValueTracker
             return sum;
         }
 
+        private static List<Component> GetCachedCartComponents()
+        {
+            if (!Configuration.EnableCartComponentCaching.Value)
+            {
+                cachedCartComponents.Clear();
+                Component[] immediate = UnityEngine.Object.FindObjectsOfType<Component>();
+                for (int i = 0; i < immediate.Length; i++)
+                {
+                    Component comp = immediate[i];
+                    if (comp == null)
+                        continue;
+
+                    string typeName = comp.GetType().Name;
+                    if (typeName.IndexOf("Cart", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        cachedCartComponents.Add(comp);
+                    }
+                }
+                return cachedCartComponents;
+            }
+
+            int interval = Math.Max(1, Configuration.CartRescanIntervalFrames.Value);
+            int frame = Time.frameCount;
+
+            if (!cartsDirty && (frame - lastCartScanFrame) < interval && cachedCartComponents.Count > 0)
+                return cachedCartComponents;
+
+            cachedCartComponents.Clear();
+            Component[] components = UnityEngine.Object.FindObjectsOfType<Component>();
+            for (int i = 0; i < components.Length; i++)
+            {
+                Component comp = components[i];
+                if (comp == null)
+                    continue;
+
+                string typeName = comp.GetType().Name;
+                if (typeName.IndexOf("Cart", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    cachedCartComponents.Add(comp);
+                }
+            }
+
+            lastCartScanFrame = frame;
+            cartsDirty = false;
+            return cachedCartComponents;
+        }
+
         /// <summary>
         /// Updates cached breakdown values on a frame interval while the map is open.
         /// If allowWhenClosed is true, it also updates while the map is closed.
         /// </summary>
-        public static void UpdateBreakdownCache(bool mapOpen, bool allowWhenClosed)
+        public static void UpdateBreakdownCache(bool mapOpen, bool allowWhenClosed, bool needCarts, bool needExtraction)
         {
             int interval = Math.Max(1, Configuration.BreakdownUpdateIntervalFrames.Value);
             int frame = Time.frameCount;
@@ -164,10 +242,14 @@ namespace MapValueTracker
                 return;
             }
 
-            cachedCartsValue = ComputeValueInCarts();
-            cachedExtractionValue = ComputeValueInExtraction();
+            ComputeBreakdownValues(needCarts, needExtraction, out cachedCartsValue, out cachedExtractionValue);
             lastBreakdownFrame = frame;
             lastMapOpen = mapOpen;
+        }
+
+        public static void MarkCartsDirty()
+        {
+            cartsDirty = true;
         }
 
         /// <summary>
@@ -244,15 +326,15 @@ namespace MapValueTracker
                 return;
 
             Type type = comp.GetType();
-            var fields = AccessTools.GetDeclaredFields(type);
-            for (int i = 0; i < fields.Count; i++)
+            FieldInfo[] fields = GetCachedCartFields(type);
+            for (int i = 0; i < fields.Length; i++)
             {
                 object value = fields[i].GetValue(comp);
                 CollectValuablesFromValue(value, counted);
             }
 
-            var properties = AccessTools.GetDeclaredProperties(type);
-            for (int i = 0; i < properties.Count; i++)
+            PropertyInfo[] properties = GetCachedCartProps(type);
+            for (int i = 0; i < properties.Length; i++)
             {
                 var prop = properties[i];
                 if (!prop.CanRead || prop.GetIndexParameters().Length != 0)
@@ -260,6 +342,52 @@ namespace MapValueTracker
                 object value = prop.GetValue(comp, null);
                 CollectValuablesFromValue(value, counted);
             }
+        }
+
+        private static FieldInfo[] GetCachedCartFields(Type type)
+        {
+            if (!Configuration.EnableCartReflectionCaching.Value)
+            {
+                var uncached = AccessTools.GetDeclaredFields(type);
+                FieldInfo[] direct = new FieldInfo[uncached.Count];
+                for (int i = 0; i < uncached.Count; i++)
+                    direct[i] = uncached[i];
+                return direct;
+            }
+
+            if (cartFieldsCache.TryGetValue(type, out FieldInfo[] cached))
+                return cached;
+
+            var list = AccessTools.GetDeclaredFields(type);
+            FieldInfo[] fields = new FieldInfo[list.Count];
+            for (int i = 0; i < list.Count; i++)
+                fields[i] = list[i];
+
+            cartFieldsCache[type] = fields;
+            return fields;
+        }
+
+        private static PropertyInfo[] GetCachedCartProps(Type type)
+        {
+            if (!Configuration.EnableCartReflectionCaching.Value)
+            {
+                var uncached = AccessTools.GetDeclaredProperties(type);
+                PropertyInfo[] direct = new PropertyInfo[uncached.Count];
+                for (int i = 0; i < uncached.Count; i++)
+                    direct[i] = uncached[i];
+                return direct;
+            }
+
+            if (cartPropsCache.TryGetValue(type, out PropertyInfo[] cached))
+                return cached;
+
+            var list = AccessTools.GetDeclaredProperties(type);
+            PropertyInfo[] props = new PropertyInfo[list.Count];
+            for (int i = 0; i < list.Count; i++)
+                props[i] = list[i];
+
+            cartPropsCache[type] = props;
+            return props;
         }
 
         /// <summary>
@@ -432,30 +560,7 @@ namespace MapValueTracker
             return false;
         }
 
-        private static bool IsInCart(Transform start)
-        {
-            Transform current = start;
-            int depth = 0;
-            while (current != null && depth < 8)
-            {
-                Component[] components = current.GetComponents<Component>();
-                for (int i = 0; i < components.Length; i++)
-                {
-                    Component comp = components[i];
-                    if (comp == null)
-                        continue;
-
-                    string typeName = comp.GetType().Name;
-                    if (typeName.IndexOf("Cart", StringComparison.OrdinalIgnoreCase) >= 0)
-                        return true;
-                }
-
-                current = current.parent;
-                depth++;
-            }
-
-            return false;
-        }
+        // Intentionally no per-object cart check helper; cart value is computed from cart components.
     }
 
     public class MyOnDestroy : MonoBehaviour

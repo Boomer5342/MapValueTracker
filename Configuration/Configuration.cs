@@ -28,6 +28,9 @@ namespace MapValueTracker.Config
         public static ConfigEntry<bool> ShowExtractionValue;
         public static ConfigEntry<bool> ShowRemainingValue;
         public static ConfigEntry<int> BreakdownUpdateIntervalFrames;
+        public static ConfigEntry<int> CartRescanIntervalFrames;
+        public static ConfigEntry<bool> EnableCartComponentCaching;
+        public static ConfigEntry<bool> EnableCartReflectionCaching;
         public static ConfigEntry<bool> ReplaceHudMapWithRemaining;
 
         public static void Init(ConfigFile config)
@@ -97,8 +100,26 @@ namespace MapValueTracker.Config
             BreakdownUpdateIntervalFrames = config.Bind(
                 "Breakdown",
                 "BreakdownUpdateIntervalFrames",
-                10,
+                30,
                 "How often (in frames) the breakdown values refresh while the map is open. Lower is more accurate, higher is lighter."
+            );
+            CartRescanIntervalFrames = config.Bind(
+                "Breakdown",
+                "CartRescanIntervalFrames",
+                300,
+                "How often (in frames) to rescan the scene for cart components. Higher reduces lag but may delay cart detection."
+            );
+            EnableCartComponentCaching = config.Bind(
+                "Breakdown",
+                "EnableCartComponentCaching",
+                true,
+                "When true, caches cart components to reduce expensive scene scans."
+            );
+            EnableCartReflectionCaching = config.Bind(
+                "Breakdown",
+                "EnableCartReflectionCaching",
+                true,
+                "When true, caches cart reflection metadata to reduce per-scan overhead."
             );
             ReplaceHudMapWithRemaining = config.Bind(
                 "Breakdown",
