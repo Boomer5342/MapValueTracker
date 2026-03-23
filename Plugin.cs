@@ -17,7 +17,7 @@ namespace MapValueTracker
     {
         public const string PLUGIN_GUID = "MapValueTrackerPlus";
         public const string PLUGIN_NAME = "Map Value Tracker Plus";
-        public const string PLUGIN_VERSION = "1.0.1";
+        public const string PLUGIN_VERSION = "1.0.2";
 
         public static new ManualLogSource Logger;
         private readonly Harmony harmony = new Harmony("MapValueTrackerPlus.REPO");
@@ -30,9 +30,9 @@ namespace MapValueTracker
         public static float totalValueInit = 0f;
         public static float cachedCartsValue = 0f;
         public static float cachedExtractionValue = 0f;
-        private static int lastBreakdownFrame = -100000;
+        private static float lastBreakdownTime = -100000f;
         private static bool lastMapOpen = false;
-        private static int lastCartScanFrame = -100000;
+        private static float lastCartScanTime = -100000f;
         private static List<Component> cachedCartComponents = new List<Component>();
         private static bool cartsDirty = true;
         private static readonly Dictionary<Type, FieldInfo[]> cartFieldsCache = new Dictionary<Type, FieldInfo[]>();
@@ -175,29 +175,10 @@ namespace MapValueTracker
 
         private static List<Component> GetCachedCartComponents()
         {
-            if (!Configuration.EnableCartComponentCaching.Value)
-            {
-                cachedCartComponents.Clear();
-                Component[] immediate = UnityEngine.Object.FindObjectsOfType<Component>();
-                for (int i = 0; i < immediate.Length; i++)
-                {
-                    Component comp = immediate[i];
-                    if (comp == null)
-                        continue;
+            float interval = Math.Max(0.1f, Configuration.CartRescanIntervalSeconds.Value);
+            float now = Time.unscaledTime;
 
-                    string typeName = comp.GetType().Name;
-                    if (typeName.IndexOf("Cart", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        cachedCartComponents.Add(comp);
-                    }
-                }
-                return cachedCartComponents;
-            }
-
-            int interval = Math.Max(1, Configuration.CartRescanIntervalFrames.Value);
-            int frame = Time.frameCount;
-
-            if (!cartsDirty && (frame - lastCartScanFrame) < interval && cachedCartComponents.Count > 0)
+            if (!cartsDirty && (now - lastCartScanTime) < interval && cachedCartComponents.Count > 0)
                 return cachedCartComponents;
 
             cachedCartComponents.Clear();
@@ -215,19 +196,19 @@ namespace MapValueTracker
                 }
             }
 
-            lastCartScanFrame = frame;
+            lastCartScanTime = now;
             cartsDirty = false;
             return cachedCartComponents;
         }
 
         /// <summary>
-        /// Updates cached breakdown values on a frame interval while the map is open.
+        /// Updates cached breakdown values on a time interval while the map is open.
         /// If allowWhenClosed is true, it also updates while the map is closed.
         /// </summary>
         public static void UpdateBreakdownCache(bool mapOpen, bool allowWhenClosed, bool needCarts, bool needExtraction)
         {
-            int interval = Math.Max(1, Configuration.BreakdownUpdateIntervalFrames.Value);
-            int frame = Time.frameCount;
+            float interval = Math.Max(0.1f, Configuration.BreakdownUpdateIntervalSeconds.Value);
+            float now = Time.unscaledTime;
             bool force = mapOpen && !lastMapOpen;
 
             if (!mapOpen && !allowWhenClosed)
@@ -236,14 +217,14 @@ namespace MapValueTracker
                 return;
             }
 
-            if (!force && (frame - lastBreakdownFrame) < interval)
+            if (!force && (now - lastBreakdownTime) < interval)
             {
                 lastMapOpen = true;
                 return;
             }
 
             ComputeBreakdownValues(needCarts, needExtraction, out cachedCartsValue, out cachedExtractionValue);
-            lastBreakdownFrame = frame;
+            lastBreakdownTime = now;
             lastMapOpen = mapOpen;
         }
 
@@ -346,15 +327,6 @@ namespace MapValueTracker
 
         private static FieldInfo[] GetCachedCartFields(Type type)
         {
-            if (!Configuration.EnableCartReflectionCaching.Value)
-            {
-                var uncached = AccessTools.GetDeclaredFields(type);
-                FieldInfo[] direct = new FieldInfo[uncached.Count];
-                for (int i = 0; i < uncached.Count; i++)
-                    direct[i] = uncached[i];
-                return direct;
-            }
-
             if (cartFieldsCache.TryGetValue(type, out FieldInfo[] cached))
                 return cached;
 
@@ -369,15 +341,6 @@ namespace MapValueTracker
 
         private static PropertyInfo[] GetCachedCartProps(Type type)
         {
-            if (!Configuration.EnableCartReflectionCaching.Value)
-            {
-                var uncached = AccessTools.GetDeclaredProperties(type);
-                PropertyInfo[] direct = new PropertyInfo[uncached.Count];
-                for (int i = 0; i < uncached.Count; i++)
-                    direct[i] = uncached[i];
-                return direct;
-            }
-
             if (cartPropsCache.TryGetValue(type, out PropertyInfo[] cached))
                 return cached;
 

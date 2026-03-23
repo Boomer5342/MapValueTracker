@@ -19,18 +19,14 @@ namespace MapValueTracker.Config
     {
         public static ConfigEntry<bool> AlwaysOn;
         public static ConfigEntry<bool> StartingValueOnly;
-        public static ConfigEntry<bool> UseValueRatio;
-        public static ConfigEntry<float> ValueRatio;
         public static ConfigEntry<Positions> UIPosition;
         public static ConfigEntry<Vector2> CustomPositionCoords;
         public static ConfigEntry<bool> ShowBreakdownOnMap;
         public static ConfigEntry<bool> ShowCartsValue;
         public static ConfigEntry<bool> ShowExtractionValue;
         public static ConfigEntry<bool> ShowRemainingValue;
-        public static ConfigEntry<int> BreakdownUpdateIntervalFrames;
-        public static ConfigEntry<int> CartRescanIntervalFrames;
-        public static ConfigEntry<bool> EnableCartComponentCaching;
-        public static ConfigEntry<bool> EnableCartReflectionCaching;
+        public static ConfigEntry<float> BreakdownUpdateIntervalSeconds;
+        public static ConfigEntry<float> CartRescanIntervalSeconds;
         public static ConfigEntry<bool> ReplaceHudMapWithRemaining;
 
         public static void Init(ConfigFile config)
@@ -48,18 +44,6 @@ namespace MapValueTracker.Config
                 "StartingValueOnly",
                 false,
                 "Toggle to keep the Map Value fixed to the level's initially generated value. Will not update value in real time from breaking items, killing enemies, or extracting loot. Should not be used with UseValueRatio set to true."
-            );
-            UseValueRatio = config.Bind(
-                "Default",
-                "UseValueRatio",
-                false,
-                "Toggle to use value ratio to display Map Valuables. AlwaysOn must be false and this must be true to take effect."
-            );
-            ValueRatio = config.Bind(
-                "Default",
-                "ValueRatio",
-                2.0f,
-                "Ratio of Map Value to Extraction Goal. UseValueRatio must be true to take effect. Ex: 20k map value to 10k goal is 2.0 "
             );
             UIPosition = config.Bind(
                 "UIPosition",
@@ -97,29 +81,17 @@ namespace MapValueTracker.Config
                 true,
                 "When true, shows remaining value (Map minus Carts/Extraction)."
             );
-            BreakdownUpdateIntervalFrames = config.Bind(
+            BreakdownUpdateIntervalSeconds = config.Bind(
                 "Breakdown",
-                "BreakdownUpdateIntervalFrames",
-                30,
-                "How often (in frames) the breakdown values refresh while the map is open. Lower is more accurate, higher is lighter."
+                "BreakdownUpdateIntervalSeconds",
+                10f,
+                "How often (in seconds) the breakdown values refresh while the map is open. Lower is more accurate, higher is lighter."
             );
-            CartRescanIntervalFrames = config.Bind(
+            CartRescanIntervalSeconds = config.Bind(
                 "Breakdown",
-                "CartRescanIntervalFrames",
-                300,
-                "How often (in frames) to rescan the scene for cart components. Higher reduces lag but may delay cart detection."
-            );
-            EnableCartComponentCaching = config.Bind(
-                "Breakdown",
-                "EnableCartComponentCaching",
-                true,
-                "When true, caches cart components to reduce expensive scene scans."
-            );
-            EnableCartReflectionCaching = config.Bind(
-                "Breakdown",
-                "EnableCartReflectionCaching",
-                true,
-                "When true, caches cart reflection metadata to reduce per-scan overhead."
+                "CartRescanIntervalSeconds",
+                10f,
+                "How often (in seconds) to rescan the scene for cart components. Higher reduces lag but may delay cart detection."
             );
             ReplaceHudMapWithRemaining = config.Bind(
                 "Breakdown",

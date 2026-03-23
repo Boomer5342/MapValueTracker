@@ -176,14 +176,6 @@ namespace MapValueTracker.Patches
                 {
                     MapValueTracker.textInstance.SetActive(true);
                 }
-                else if (Configuration.UseValueRatio.Value)
-                {
-                    if ((MapValueTracker.totalValue / (float)currentGoal) <= Configuration.ValueRatio.Value)
-                        MapValueTracker.textInstance.SetActive(true);
-                    else
-                        MapValueTracker.textInstance.SetActive(false);
-                    return;
-                }
                 else if (mapOpen)
                 {
                     MapValueTracker.textInstance.SetActive(true);
