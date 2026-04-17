@@ -3,7 +3,6 @@ using HarmonyLib;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
-using UnityEngine.Scripting;
 
 namespace MapValueTracker.Config
 {
@@ -18,7 +17,6 @@ namespace MapValueTracker.Config
 	internal class Configuration
     {
         public static ConfigEntry<bool> AlwaysOn;
-        public static ConfigEntry<bool> StartingValueOnly;
         public static ConfigEntry<Positions> UIPosition;
         public static ConfigEntry<Vector2> CustomPositionCoords;
         public static ConfigEntry<bool> ShowBreakdownOnMap;
@@ -26,7 +24,6 @@ namespace MapValueTracker.Config
         public static ConfigEntry<bool> ShowExtractionValue;
         public static ConfigEntry<bool> ShowRemainingValue;
         public static ConfigEntry<float> BreakdownUpdateIntervalSeconds;
-        public static ConfigEntry<float> CartRescanIntervalSeconds;
         public static ConfigEntry<bool> ReplaceHudMapWithRemaining;
 
         public static void Init(ConfigFile config)
@@ -38,12 +35,6 @@ namespace MapValueTracker.Config
                 "AlwaysOn",
                 true,
                 "Toggle to always display map value when an extraction goal is active. If false, use the menu key to pull up the tracker (Tab by default)."
-            );
-            StartingValueOnly = config.Bind(
-                "Default",
-                "StartingValueOnly",
-                false,
-                "Toggle to keep the Map Value fixed to the level's initially generated value. Will not update value in real time from breaking items, killing enemies, or extracting loot. Should not be used with UseValueRatio set to true."
             );
             UIPosition = config.Bind(
                 "UIPosition",
@@ -84,14 +75,8 @@ namespace MapValueTracker.Config
             BreakdownUpdateIntervalSeconds = config.Bind(
                 "Breakdown",
                 "BreakdownUpdateIntervalSeconds",
-                10f,
+                1f,
                 "How often (in seconds) the breakdown values refresh while the map is open. Lower is more accurate, higher is lighter."
-            );
-            CartRescanIntervalSeconds = config.Bind(
-                "Breakdown",
-                "CartRescanIntervalSeconds",
-                10f,
-                "How often (in seconds) to rescan the scene for cart components. Higher reduces lag but may delay cart detection."
             );
             ReplaceHudMapWithRemaining = config.Bind(
                 "Breakdown",

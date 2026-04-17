@@ -1,21 +1,10 @@
-﻿using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using UnityEngine;
+using HarmonyLib;
 
 namespace MapValueTracker.Patches
 {
     [HarmonyPatch(typeof(ValuableObject))]
     static class ValuableObjectPatches
     {
-        [HarmonyPatch("Start")]
-        [HarmonyPostfix]
-        static void Start(ValuableObject __instance)
-        {
-            //__instance.gameObject.AddComponent<MyOnDestroy>();
-            //MapValueTracker.Logger.LogDebug("Added OnDestroy");
-        }
         [HarmonyPatch("DollarValueSetRPC")]
         [HarmonyPostfix]
         static void DollarValueSet(ValuableObject __instance, float value)
@@ -40,3 +29,4 @@ namespace MapValueTracker.Patches
         }
     }
 }
+

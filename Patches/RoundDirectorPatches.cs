@@ -1,7 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Text;
 using HarmonyLib;
 using MapValueTracker.Config;
 using TMPro;
@@ -83,7 +79,6 @@ namespace MapValueTracker.Patches
         public static void UpdateUI()
         {
             int? currentGoal = Traverse.Create(RoundDirector.instance).Field("extractionHaulGoal").GetValue<int>();
-            bool extractActive = Traverse.Create(RoundDirector.instance).Field("extractionPointActive").GetValue<bool>(); 
             bool allExtractionPointsCompleted = Traverse.Create(RoundDirector.instance).Field("allExtractionPointsCompleted").GetValue<bool>();
 
             if (!SemiFunc.RunIsLevel())
@@ -131,7 +126,7 @@ namespace MapValueTracker.Patches
                 SetCoordinates(component);
 
 
-                float mapValue = MapValueTracker.GetDisplayedMapValue();
+                float mapValue = MapValueTracker.totalValue;
                 bool mapOpen = SemiFunc.InputHold(InputKey.Map) || mapToggled;
                 bool needCarts = Configuration.ShowCartsValue.Value || Configuration.ShowRemainingValue.Value;
                 bool needExtraction = Configuration.ShowExtractionValue.Value || Configuration.ShowRemainingValue.Value;
@@ -190,3 +185,5 @@ namespace MapValueTracker.Patches
         }
     }
 }
+
+

@@ -14,7 +14,6 @@ namespace MapValueTracker.Patches
         {
             MapValueTracker.Logger.LogDebug("Generating Started. Resetting to zero.");
             MapValueTracker.ResetValues();
-            MapValueTracker.MarkCartsDirty();
             MapValueTracker.Logger.LogDebug("Room generation started. Now val is " + MapValueTracker.totalValue);
         }
 
@@ -24,9 +23,7 @@ namespace MapValueTracker.Patches
         {
             MapValueTracker.Logger.LogDebug("Generating Started. Resetting to zero.");
             MapValueTracker.CheckForItems();
-            MapValueTracker.totalValueInit = MapValueTracker.totalValue;
-            MapValueTracker.MarkCartsDirty();
-            MapValueTracker.Logger.LogDebug("Generation done. Now val is " + MapValueTracker.totalValue + ". Init Value: " + MapValueTracker.totalValueInit);
+            MapValueTracker.Logger.LogDebug("Generation done. Now val is " + MapValueTracker.totalValue);
         }
     }
 }

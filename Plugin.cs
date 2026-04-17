@@ -5,7 +5,6 @@ using TMPro;
 using UnityEngine;
 using MapValueTracker.Config;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -17,7 +16,7 @@ namespace MapValueTracker
     {
         public const string PLUGIN_GUID = "MapValueTrackerPlus";
         public const string PLUGIN_NAME = "Map Value Tracker Plus";
-        public const string PLUGIN_VERSION = "1.0.2";
+        public const string PLUGIN_VERSION = "1.0.3";
 
         public static new ManualLogSource Logger;
         private readonly Harmony harmony = new Harmony("MapValueTrackerPlus.REPO");
@@ -27,16 +26,13 @@ namespace MapValueTracker
         public static TextMeshProUGUI valueText;
 
         public static float totalValue = 0f;
-        public static float totalValueInit = 0f;
         public static float cachedCartsValue = 0f;
         public static float cachedExtractionValue = 0f;
         private static float lastBreakdownTime = -100000f;
         private static bool lastMapOpen = false;
-        private static float lastCartScanTime = -100000f;
-        private static List<Component> cachedCartComponents = new List<Component>();
-        private static bool cartsDirty = true;
-        private static readonly Dictionary<Type, FieldInfo[]> cartFieldsCache = new Dictionary<Type, FieldInfo[]>();
-        private static readonly Dictionary<Type, PropertyInfo[]> cartPropsCache = new Dictionary<Type, PropertyInfo[]>();
+        private static readonly FieldInfo cartHaulCurrentField = AccessTools.Field(typeof(PhysGrabCart), "haulCurrent");
+        private static readonly FieldInfo cartItemsInCartField = AccessTools.Field(typeof(PhysGrabCart), "itemsInCart");
+        private static bool cartFieldWarningLogged;
 
         public void Awake()
         {
@@ -84,40 +80,13 @@ namespace MapValueTracker
         }
 
         /// <summary>
-        /// Returns the map value to display based on config (live value or initial value).
-        /// </summary>
-        public static float GetDisplayedMapValue()
-        {
-            return Configuration.StartingValueOnly.Value ? totalValueInit : totalValue;
-        }
-
-        /// <summary>
-        /// Sums the value currently staged for extraction (haul list).
-        /// </summary>
-        public static float ComputeValueInExtraction()
-        {
-            if (RoundDirector.instance == null)
-                return 0f;
-
-            GetExtractionSets(out HashSet<ValuableObject> extractionValuables, out _);
-
-            float sum = 0f;
-            foreach (ValuableObject vo in extractionValuables)
-            {
-                sum += GetValuableCurrent(vo);
-            }
-
-            return sum;
-        }
-
-        /// <summary>
-        /// Sums the value of valuables inside any cart (including pocket carts).
+        /// Sums the value of valuables inside any cart.
         /// Excludes items that are already on extraction to avoid double counting.
         /// </summary>
         public static float ComputeValueInCarts()
         {
-            GetExtractionSets(out HashSet<ValuableObject> extractionValuables, out HashSet<GameObject> extractionObjects);
-            return ComputeValueInCarts(extractionValuables, extractionObjects);
+            GetExtractionSets(out HashSet<ValuableObject> extractionValuables);
+            return ComputeValueInCarts(extractionValuables);
         }
 
         private static void ComputeBreakdownValues(bool needCarts, bool needExtraction, out float cartsValue, out float extractionValue)
@@ -128,7 +97,7 @@ namespace MapValueTracker
             if (!needCarts && !needExtraction)
                 return;
 
-            GetExtractionSets(out HashSet<ValuableObject> extractionValuables, out HashSet<GameObject> extractionObjects);
+            GetExtractionSets(out HashSet<ValuableObject> extractionValuables);
 
             if (needExtraction)
             {
@@ -140,65 +109,122 @@ namespace MapValueTracker
 
             if (needCarts)
             {
-                cartsValue = ComputeValueInCarts(extractionValuables, extractionObjects);
+                cartsValue = ComputeValueInCarts(extractionValuables);
             }
         }
 
-        private static float ComputeValueInCarts(HashSet<ValuableObject> extractionValuables, HashSet<GameObject> extractionObjects)
+        private static float ComputeValueInCarts(HashSet<ValuableObject> extractionValuables)
         {
-            float sum = 0f;
-            HashSet<ValuableObject> counted = new HashSet<ValuableObject>();
-            List<Component> cartComponents = GetCachedCartComponents();
+            PhysGrabCart[] carts = UnityEngine.Object.FindObjectsOfType<PhysGrabCart>();
+            if (carts == null || carts.Length == 0)
+                return 0f;
 
-            for (int i = 0; i < cartComponents.Count; i++)
+            if (extractionValuables == null || extractionValuables.Count == 0)
             {
-                Component comp = cartComponents[i];
-                if (comp == null)
-                    continue;
-
-                if (IsComponentInExtraction(comp, extractionObjects))
-                    continue;
-
-                // Reflection-based scan so we don't depend on cart type names beyond "*Cart*".
-                CollectValuablesFromComponent(comp, counted);
+                float fastSum = 0f;
+                for (int i = 0; i < carts.Length; i++)
+                {
+                    if (TryGetCartHaulCurrent(carts[i], out int haulCurrent))
+                        fastSum += haulCurrent;
+                }
+                return fastSum;
             }
 
-            foreach (ValuableObject vo in counted)
+            float sum = 0f;
+            HashSet<ValuableObject> counted = new HashSet<ValuableObject>();
+            for (int i = 0; i < carts.Length; i++)
             {
-                if (extractionValuables.Contains(vo))
+                PhysGrabCart cart = carts[i];
+                if (!TryGetCartItemsInCart(cart, out List<PhysGrabObject> itemsInCart))
                     continue;
-                sum += GetValuableCurrent(vo);
+
+                for (int itemIndex = 0; itemIndex < itemsInCart.Count; itemIndex++)
+                {
+                    PhysGrabObject physObj = itemsInCart[itemIndex];
+                    if (physObj == null)
+                        continue;
+
+                    ValuableObject vo = physObj.GetComponent<ValuableObject>();
+                    if (vo == null)
+                        continue;
+
+                    if (!counted.Add(vo))
+                        continue;
+
+                    if (extractionValuables.Contains(vo))
+                        continue;
+
+                    sum += GetValuableCurrent(vo);
+                }
             }
 
             return sum;
         }
 
-        private static List<Component> GetCachedCartComponents()
+        private static bool TryGetCartHaulCurrent(PhysGrabCart cart, out int value)
         {
-            float interval = Math.Max(0.1f, Configuration.CartRescanIntervalSeconds.Value);
-            float now = Time.unscaledTime;
+            value = 0;
+            if (cart == null)
+                return false;
 
-            if (!cartsDirty && (now - lastCartScanTime) < interval && cachedCartComponents.Count > 0)
-                return cachedCartComponents;
-
-            cachedCartComponents.Clear();
-            Component[] components = UnityEngine.Object.FindObjectsOfType<Component>();
-            for (int i = 0; i < components.Length; i++)
+            if (cartHaulCurrentField == null)
             {
-                Component comp = components[i];
-                if (comp == null)
-                    continue;
+                LogMissingCartFieldWarning("haulCurrent");
+                return false;
+            }
 
-                string typeName = comp.GetType().Name;
-                if (typeName.IndexOf("Cart", StringComparison.OrdinalIgnoreCase) >= 0)
+            object raw = cartHaulCurrentField.GetValue(cart);
+            if (raw is int intValue)
+            {
+                value = intValue;
+                return true;
+            }
+
+            if (raw is IConvertible convertible)
+            {
+                try
                 {
-                    cachedCartComponents.Add(comp);
+                    value = Convert.ToInt32(convertible);
+                    return true;
+                }
+                catch
+                {
+                    return false;
                 }
             }
 
-            lastCartScanTime = now;
-            cartsDirty = false;
-            return cachedCartComponents;
+            return false;
+        }
+
+        private static bool TryGetCartItemsInCart(PhysGrabCart cart, out List<PhysGrabObject> items)
+        {
+            items = null;
+            if (cart == null)
+                return false;
+
+            if (cartItemsInCartField == null)
+            {
+                LogMissingCartFieldWarning("itemsInCart");
+                return false;
+            }
+
+            object raw = cartItemsInCartField.GetValue(cart);
+            if (raw is List<PhysGrabObject> list)
+            {
+                items = list;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static void LogMissingCartFieldWarning(string fieldName)
+        {
+            if (cartFieldWarningLogged)
+                return;
+
+            cartFieldWarningLogged = true;
+            Logger.LogWarning($"Unable to access PhysGrabCart.{fieldName}. Cart values will be treated as $0.");
         }
 
         /// <summary>
@@ -228,181 +254,26 @@ namespace MapValueTracker
             lastMapOpen = mapOpen;
         }
 
-        public static void MarkCartsDirty()
-        {
-            cartsDirty = true;
-        }
-
         /// <summary>
         /// Builds sets of valuables and objects currently staged for extraction.
         /// </summary>
-        private static void GetExtractionSets(out HashSet<ValuableObject> extractionValuables, out HashSet<GameObject> extractionObjects)
+        private static void GetExtractionSets(out HashSet<ValuableObject> extractionValuables)
         {
             extractionValuables = new HashSet<ValuableObject>();
-            extractionObjects = new HashSet<GameObject>();
 
-            if (RoundDirector.instance == null)
+            if (RoundDirector.instance == null || RoundDirector.instance.dollarHaulList == null)
                 return;
 
-            object haulListObj = Traverse.Create(RoundDirector.instance).Field("dollarHaulList").GetValue();
-            if (haulListObj is not IEnumerable haulList)
-                return;
-
-            foreach (object item in haulList)
+            List<GameObject> haulList = RoundDirector.instance.dollarHaulList;
+            for (int i = 0; i < haulList.Count; i++)
             {
-                if (item == null)
-                    continue;
-
-                if (item is ValuableObject directVo)
-                {
-                    extractionValuables.Add(directVo);
-                    continue;
-                }
-
-                GameObject go = item as GameObject;
-                if (go == null && item is Component component)
-                    go = component.gameObject;
-
+                GameObject go = haulList[i];
                 if (go == null)
                     continue;
 
-                extractionObjects.Add(go);
-
                 ValuableObject vo = go.GetComponent<ValuableObject>();
                 if (vo != null)
-                {
                     extractionValuables.Add(vo);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Determines if a component belongs to a GameObject that is in extraction.
-        /// </summary>
-        private static bool IsComponentInExtraction(Component comp, HashSet<GameObject> extractionObjects)
-        {
-            if (comp == null || extractionObjects == null || extractionObjects.Count == 0)
-                return false;
-
-            Transform current = comp.transform;
-            int depth = 0;
-            while (current != null && depth < 12)
-            {
-                if (extractionObjects.Contains(current.gameObject))
-                    return true;
-
-                current = current.parent;
-                depth++;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Reflects over a component's fields and properties to find valuables.
-        /// </summary>
-        private static void CollectValuablesFromComponent(Component comp, HashSet<ValuableObject> counted)
-        {
-            if (comp == null || counted == null)
-                return;
-
-            Type type = comp.GetType();
-            FieldInfo[] fields = GetCachedCartFields(type);
-            for (int i = 0; i < fields.Length; i++)
-            {
-                object value = fields[i].GetValue(comp);
-                CollectValuablesFromValue(value, counted);
-            }
-
-            PropertyInfo[] properties = GetCachedCartProps(type);
-            for (int i = 0; i < properties.Length; i++)
-            {
-                var prop = properties[i];
-                if (!prop.CanRead || prop.GetIndexParameters().Length != 0)
-                    continue;
-                object value = prop.GetValue(comp, null);
-                CollectValuablesFromValue(value, counted);
-            }
-        }
-
-        private static FieldInfo[] GetCachedCartFields(Type type)
-        {
-            if (cartFieldsCache.TryGetValue(type, out FieldInfo[] cached))
-                return cached;
-
-            var list = AccessTools.GetDeclaredFields(type);
-            FieldInfo[] fields = new FieldInfo[list.Count];
-            for (int i = 0; i < list.Count; i++)
-                fields[i] = list[i];
-
-            cartFieldsCache[type] = fields;
-            return fields;
-        }
-
-        private static PropertyInfo[] GetCachedCartProps(Type type)
-        {
-            if (cartPropsCache.TryGetValue(type, out PropertyInfo[] cached))
-                return cached;
-
-            var list = AccessTools.GetDeclaredProperties(type);
-            PropertyInfo[] props = new PropertyInfo[list.Count];
-            for (int i = 0; i < list.Count; i++)
-                props[i] = list[i];
-
-            cartPropsCache[type] = props;
-            return props;
-        }
-
-        /// <summary>
-        /// Attempts to extract valuables from a field/property value.
-        /// </summary>
-        private static void CollectValuablesFromValue(object value, HashSet<ValuableObject> counted)
-        {
-            if (value == null || counted == null)
-                return;
-
-            if (value is string)
-                return;
-
-            if (value is ValuableObject vo)
-            {
-                counted.Add(vo);
-                return;
-            }
-
-            if (value is Component comp)
-            {
-                TryAddValuableFromGameObject(comp.gameObject, counted);
-                return;
-            }
-
-            if (value is GameObject go)
-            {
-                TryAddValuableFromGameObject(go, counted);
-                return;
-            }
-
-            if (value is IEnumerable enumerable)
-            {
-                foreach (object item in enumerable)
-                {
-                    CollectValuablesFromValue(item, counted);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Adds a ValuableObject from a GameObject if present.
-        /// </summary>
-        private static void TryAddValuableFromGameObject(GameObject go, HashSet<ValuableObject> counted)
-        {
-            if (go == null || counted == null)
-                return;
-
-            ValuableObject vo = go.GetComponent<ValuableObject>();
-            if (vo != null)
-            {
-                counted.Add(vo);
             }
         }
 
@@ -525,19 +396,4 @@ namespace MapValueTracker
 
         // Intentionally no per-object cart check helper; cart value is computed from cart components.
     }
-
-    public class MyOnDestroy : MonoBehaviour
-    {
-        void OnDestroy()
-        {
-            MapValueTracker.Logger.LogDebug("Destroying!");
-            var vo = GetComponent<ValuableObject>();
-            float val = MapValueTracker.GetValuableCurrent(vo);
-            MapValueTracker.Logger.LogDebug("Destroyed Valuable Object! " + vo.name + " Val: " + val);
-            MapValueTracker.totalValue -= val;
-            MapValueTracker.Logger.LogDebug("Total Val: " + MapValueTracker.totalValue);
-        }
-    }
-
-
 }

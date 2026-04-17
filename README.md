@@ -9,19 +9,15 @@ When the map is open, it can show a breakdown for:
 - Extraction value
 - Remaining value (Map minus Carts/Extraction)
 
-Can be set to only show the initial map's value and NOT update in real time by setting StartingValueOnly to true.
-
 Configuration variables:
-- AlwaysOn set to true will keep the value always on the HUD. Overrides any other setting like UseValueRatio.
-- StartingValueOnly set to true will keep the Map Value fixed to the level's initially generated value. Will not update value in real time from breaking items, killing enemies, or extracting loot. Should not be used with UseValueRatio set to true.
+- AlwaysOn set to true will keep the value always on the HUD.
 - UIPosition is a drop down of UI Position presets along the right side of the screen. Set to Custom and modify CustomPositionCoords to use custom coordinates.
 - CustomPositionCoords is the X and Y position of the UI element. Requires UIPosition to be set to Custom. 0.0,0.0 is bottom right corner. Default UIPosition is 0.0,225.0.
 - ShowBreakdownOnMap enables the breakdown lines when the map is open.
 - ShowCartsValue toggles the carts value line.
 - ShowExtractionValue toggles the extraction value line.
 - ShowRemainingValue toggles the remaining value line.
-- BreakdownUpdateIntervalSeconds controls how often the breakdown values refresh while the map is open. Default is 10 seconds for smoother multiplayer.
-- CartRescanIntervalSeconds controls how often the scene is rescanned for cart components. Default is 10 seconds for smoother multiplayer.
+- BreakdownUpdateIntervalSeconds controls how often the breakdown values refresh while the map is open. Default is 1 second.
 - ReplaceHudMapWithRemaining replaces the always-on HUD Map line with Remaining.
 
 Credits:
