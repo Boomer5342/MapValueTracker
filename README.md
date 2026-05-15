@@ -1,24 +1,25 @@
-This mod shows total value of the valuables on the map and updates in real-time as things break, spawn in, or are extracted. The display is on the right side of the screen a little below the extraction goal.
+Map Value Tracker Plus keeps a running total of the valuables in a level and shows that information in a lightweight HUD that fits the current REPO UI.
 
-Is ALWAYS ON and visible by default! 
+- With the map closed, you can keep a compact one-line total on screen.
+- With the map open, the HUD switches to either a short summary or a full breakdown.
 
-To pull up map value only when pressing the Map button (Tab by default), set 'AlwaysOn' to false.
+The mod works with `REPOConfig`, so the main settings can be changed in game instead of only through the config file.
 
-When the map is open, it can show a breakdown for:
+Tracked values:
+- Map value
+- Remaining value (`Map - Carts - Extraction`)
 - Carts value
 - Extraction value
-- Remaining value (Map minus Carts/Extraction)
+- Current haul progress
 
-Configuration variables:
-- AlwaysOn set to true will keep the value always on the HUD.
-- UIPosition is a drop down of UI Position presets along the right side of the screen. Set to Custom and modify CustomPositionCoords to use custom coordinates.
-- CustomPositionCoords is the X and Y position of the UI element. Requires UIPosition to be set to Custom. 0.0,0.0 is bottom right corner. Default UIPosition is 0.0,225.0.
-- ShowBreakdownOnMap enables the breakdown lines when the map is open.
-- ShowCartsValue toggles the carts value line.
-- ShowExtractionValue toggles the extraction value line.
-- ShowRemainingValue toggles the remaining value line.
-- BreakdownUpdateIntervalSeconds controls how often the breakdown values refresh while the map is open. Default is 1 second.
-- ReplaceHudMapWithRemaining replaces the always-on HUD Map line with Remaining.
+Main settings:
+- `Show Closed Map HUD` keeps the compact valuables line visible while the map is closed.
+- `Closed Map Display` chooses whether the closed-map line shows `Map` or `Remaining`.
+- `Open Map Display` chooses `Summary` or `FullBreakdown` for the map-open layout.
+- `Match Closed Map Position` keeps the open-map HUD in the same spot as the closed-map HUD.
+- `Position Preset`, `Custom Offset X`, and `Custom Offset Y` are available for both the closed-map and open-map HUD sections.
+- `Hide After Final Extraction` hides the valuables HUD after the final extraction is done.
+- `Refresh Interval Seconds` controls how often the breakdown refreshes during a run.
 
 Credits:
 - Original mod: Tansinator - Map Value Tracker (https://github.com/tansinator/MapValueTracker)

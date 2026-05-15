@@ -3,30 +3,56 @@ using HarmonyLib;
 namespace MapValueTracker.Patches
 {
     [HarmonyPatch(typeof(ValuableObject))]
-    static class ValuableObjectPatches
+    internal static class ValuableObjectPatches
     {
         [HarmonyPatch("DollarValueSetRPC")]
         [HarmonyPostfix]
-        static void DollarValueSet(ValuableObject __instance, float value)
+        private static void DollarValueSetRpcPostfix(ValuableObject __instance, float value)
         {
-            MapValueTracker.Logger.LogDebug("Created Valuable Object! " + __instance.name + " Val: " + value);
+            LogValueCreated(__instance.name, value);
             MapValueTracker.totalValue += value;
-            //MapValueTracker.CheckForItems();
-            MapValueTracker.Logger.LogDebug("After dollar value set Total Val: " + MapValueTracker.totalValue);
+            LogTotalValue("After dollar value set Total Val: ");
+            MapValueTracker.MarkDirty(forceBreakdown: true);
         }
+
         [HarmonyPatch("DollarValueSetLogic")]
         [HarmonyPostfix]
-        static void DollarValueSetLogic(ValuableObject __instance)
+        private static void DollarValueSetLogicPostfix(ValuableObject __instance)
         {
-            if (SemiFunc.IsMasterClientOrSingleplayer())
+            if (!SemiFunc.IsMasterClientOrSingleplayer())
             {
-                float current = MapValueTracker.GetValuableCurrent(__instance);
-                MapValueTracker.Logger.LogDebug("Created Valuable Object! " + __instance.name + " Val: " + current);
-                MapValueTracker.totalValue += current;
-                //MapValueTracker.CheckForItems();
-                MapValueTracker.Logger.LogDebug("After dollar value set Total Val: " + MapValueTracker.totalValue);
+                return;
             }
+
+            float current = MapValueTracker.GetValuableCurrent(__instance);
+            LogValueCreated(__instance.name, current);
+            MapValueTracker.totalValue += current;
+            LogTotalValue("After dollar value set Total Val: ");
+            MapValueTracker.MarkDirty(forceBreakdown: true);
+        }
+
+        [HarmonyPatch("AddToDollarHaulListRPC")]
+        [HarmonyPostfix]
+        private static void AddToDollarHaulListPostfix()
+        {
+            MapValueTracker.MarkDirty(forceBreakdown: true);
+        }
+
+        [HarmonyPatch("RemoveFromDollarHaulListRPC")]
+        [HarmonyPostfix]
+        private static void RemoveFromDollarHaulListPostfix()
+        {
+            MapValueTracker.MarkDirty(forceBreakdown: true);
+        }
+
+        private static void LogValueCreated(string objectName, float value)
+        {
+            MapValueTracker.Logger.LogDebug("Created Valuable Object! " + objectName + " Val: " + value);
+        }
+
+        private static void LogTotalValue(string prefix)
+        {
+            MapValueTracker.Logger.LogDebug(prefix + MapValueTracker.totalValue);
         }
     }
 }
-

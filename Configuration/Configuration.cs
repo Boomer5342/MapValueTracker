@@ -1,104 +1,165 @@
-﻿using BepInEx.Configuration;
-using HarmonyLib;
-using System.Collections.Generic;
-using System.Reflection;
+using BepInEx.Configuration;
+using System.Globalization;
 using UnityEngine;
 
 namespace MapValueTracker.Config
 {
-    public enum Positions
+    internal static class Configuration
     {
-        Default,
-        LowerRight,
-        BottomRight,
-        Custom
-    }
+        private const string HideFromRepoConfig = "HideFromREPOConfig";
+        private static readonly Vector2 DefaultHudOffset = new Vector2(-10f, 125f);
 
-	internal class Configuration
-    {
-        public static ConfigEntry<bool> AlwaysOn;
-        public static ConfigEntry<Positions> UIPosition;
-        public static ConfigEntry<Vector2> CustomPositionCoords;
-        public static ConfigEntry<bool> ShowBreakdownOnMap;
-        public static ConfigEntry<bool> ShowCartsValue;
-        public static ConfigEntry<bool> ShowExtractionValue;
-        public static ConfigEntry<bool> ShowRemainingValue;
-        public static ConfigEntry<float> BreakdownUpdateIntervalSeconds;
-        public static ConfigEntry<bool> ReplaceHudMapWithRemaining;
+        public static ConfigEntry<bool> AlwaysOn = null!;
+        public static ConfigEntry<string> ClosedMapDisplayMode = null!;
+        public static ConfigEntry<string> OpenMapDisplayMode = null!;
+        public static ConfigEntry<bool> SyncHudPositions = null!;
+        public static ConfigEntry<string> UiPositionPreset = null!;
+        public static ConfigEntry<string> CustomOffsetX = null!;
+        public static ConfigEntry<string> CustomOffsetY = null!;
+        public static ConfigEntry<string> OpenMapPositionPreset = null!;
+        public static ConfigEntry<string> OpenMapCustomOffsetX = null!;
+        public static ConfigEntry<string> OpenMapCustomOffsetY = null!;
+        public static ConfigEntry<bool> HideAfterFinalExtraction = null!;
+        public static ConfigEntry<float> RefreshIntervalSeconds = null!;
+        public static ConfigEntry<bool> DebugLogging = null!;
 
         public static void Init(ConfigFile config)
         {
             config.SaveOnConfigSet = false;
 
             AlwaysOn = config.Bind(
+                "Closed Map HUD",
+                "Show Closed Map HUD",
+                true,
+                new ConfigDescription("Show the compact valuables readout while the map is closed.")
+            );
+            ClosedMapDisplayMode = config.Bind(
+                "Closed Map HUD",
+                "Closed Map Display",
+                "Remaining",
+                new ConfigDescription(
+                    "Choose which value the closed-map HUD shows.",
+                    new AcceptableValueList<string>("Map", "Remaining"))
+            );
+            OpenMapDisplayMode = config.Bind(
+                "Open Map HUD",
+                "Open Map Display",
+                "Summary",
+                new ConfigDescription(
+                    "Choose whether the map-open HUD shows a summary or the full breakdown.",
+                    new AcceptableValueList<string>("Summary", "FullBreakdown"))
+            );
+            SyncHudPositions = config.Bind(
+                "Open Map HUD",
+                "Match Closed Map Position",
+                true,
+                new ConfigDescription("Use the same position for the open-map HUD as the closed-map HUD.")
+            );
+            UiPositionPreset = config.Bind(
+                "Closed Map Position",
+                "Position Preset",
                 "Default",
-                "AlwaysOn",
+                new ConfigDescription(
+                    "Choose the closed-map HUD position.",
+                    new AcceptableValueList<string>("Default", "Custom"))
+            );
+            CustomOffsetX = config.Bind(
+                "Closed Map Position",
+                "Custom Offset X",
+                DefaultHudOffset.x.ToString(CultureInfo.InvariantCulture),
+                new ConfigDescription("Horizontal offset in pixels for the closed-map HUD. Negative moves left, positive moves right.")
+            );
+            CustomOffsetY = config.Bind(
+                "Closed Map Position",
+                "Custom Offset Y",
+                DefaultHudOffset.y.ToString(CultureInfo.InvariantCulture),
+                new ConfigDescription("Vertical offset in pixels for the closed-map HUD. Positive moves up, negative moves down.")
+            );
+            OpenMapPositionPreset = config.Bind(
+                "Open Map Position",
+                "Position Preset",
+                "Default",
+                new ConfigDescription(
+                    "Choose the open-map HUD position when Match Closed Map Position is off.",
+                    new AcceptableValueList<string>("Default", "Custom"))
+            );
+            OpenMapCustomOffsetX = config.Bind(
+                "Open Map Position",
+                "Custom Offset X",
+                DefaultHudOffset.x.ToString(CultureInfo.InvariantCulture),
+                new ConfigDescription("Horizontal offset in pixels for the open-map HUD when Match Closed Map Position is off.")
+            );
+            OpenMapCustomOffsetY = config.Bind(
+                "Open Map Position",
+                "Custom Offset Y",
+                DefaultHudOffset.y.ToString(CultureInfo.InvariantCulture),
+                new ConfigDescription("Vertical offset in pixels for the open-map HUD when Match Closed Map Position is off.")
+            );
+            HideAfterFinalExtraction = config.Bind(
+                "Advanced",
+                "Hide After Final Extraction",
                 true,
-                "Toggle to always display map value when an extraction goal is active. If false, use the menu key to pull up the tracker (Tab by default)."
+                new ConfigDescription("Hide the valuables HUD after the last extraction is finished.")
             );
-            UIPosition = config.Bind(
-                "UIPosition",
-                "UIPosition",
-                Positions.Default,
-                "Preset Position of the Value Tracker UI element. Default is on the right side, below the extraction targets."
-            );
-            CustomPositionCoords = config.Bind(
-                "UIPosition",
-                "CustomPositionCoords",
-                new Vector2(0, 0),
-                "Custom X,Y coordates of the Value Tracker UI element. Bottom Right corner is 0,0. Default position is 0,225."
-            );
-            ShowBreakdownOnMap = config.Bind(
-                "Breakdown",
-                "ShowBreakdownOnMap",
-                true,
-                "When true, shows extra value lines (Carts/Extraction/Remaining) while the map is open."
-            );
-            ShowCartsValue = config.Bind(
-                "Breakdown",
-                "ShowCartsValue",
-                true,
-                "When true, shows the total value currently inside carts."
-            );
-            ShowExtractionValue = config.Bind(
-                "Breakdown",
-                "ShowExtractionValue",
-                true,
-                "When true, shows the total value currently staged in extraction."
-            );
-            ShowRemainingValue = config.Bind(
-                "Breakdown",
-                "ShowRemainingValue",
-                true,
-                "When true, shows remaining value (Map minus Carts/Extraction)."
-            );
-            BreakdownUpdateIntervalSeconds = config.Bind(
-                "Breakdown",
-                "BreakdownUpdateIntervalSeconds",
+            RefreshIntervalSeconds = config.Bind(
+                "Advanced",
+                "Refresh Interval Seconds",
                 1f,
-                "How often (in seconds) the breakdown values refresh while the map is open. Lower is more accurate, higher is lighter."
+                new ConfigDescription(
+                    "How often the valuables totals refresh during a run.",
+                    new AcceptableValueRange<float>(0.1f, 5f))
             );
-            ReplaceHudMapWithRemaining = config.Bind(
-                "Breakdown",
-                "ReplaceHudMapWithRemaining",
+            DebugLogging = config.Bind(
+                "Internal",
+                "Debug Logging",
                 false,
-                "When true, the always-on HUD line shows Remaining value instead of Map value."
+                new ConfigDescription("Enable extra debug logging for HUD creation and placement.", null, HideFromRepoConfig)
             );
 
-            ClearOrphanedEntries(config);
             config.Save();
             config.SaveOnConfigSet = true;
         }
 
-        static void ClearOrphanedEntries(ConfigFile cfg)
+        public static bool IsClosedModeRemaining()
         {
-            // Find the private property `OrphanedEntries` from the type `ConfigFile` //
-            PropertyInfo orphanedEntriesProp = AccessTools.Property(typeof(ConfigFile), "OrphanedEntries");
-            // And get the value of that property from our ConfigFile instance //
-            var orphanedEntries = (Dictionary<ConfigDefinition, string>)orphanedEntriesProp.GetValue(cfg);
-            // And finally, clear the `OrphanedEntries` dictionary //
-            orphanedEntries.Clear();
+            return ClosedMapDisplayMode.Value == "Remaining";
+        }
+
+        public static bool IsFullBreakdown()
+        {
+            return OpenMapDisplayMode.Value == "FullBreakdown";
+        }
+
+        public static Vector2 GetCompactOffset()
+        {
+            return ResolveOffset(UiPositionPreset.Value, CustomOffsetX.Value, CustomOffsetY.Value);
+        }
+
+        public static Vector2 GetOpenMapOffset()
+        {
+            if (SyncHudPositions.Value)
+            {
+                return GetCompactOffset();
+            }
+
+            return ResolveOffset(OpenMapPositionPreset.Value, OpenMapCustomOffsetX.Value, OpenMapCustomOffsetY.Value);
+        }
+
+        private static Vector2 ResolveOffset(string preset, string xText, string yText)
+        {
+            if (preset != "Custom")
+            {
+                return DefaultHudOffset;
+            }
+
+            return new Vector2(ParseCoordinate(xText, DefaultHudOffset.x), ParseCoordinate(yText, DefaultHudOffset.y));
+        }
+
+        private static float ParseCoordinate(string value, float fallback)
+        {
+            return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed)
+                ? parsed
+                : fallback;
         }
     }
-
 }

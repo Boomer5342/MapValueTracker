@@ -1,16 +1,13 @@
-﻿using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using HarmonyLib;
 
 namespace MapValueTracker.Patches
 {
     [HarmonyPatch(typeof(LevelGenerator))]
-    static class LevelGeneratorPatches
+    internal static class LevelGeneratorPatches
     {
         [HarmonyPatch("StartRoomGeneration")]
         [HarmonyPrefix]
-        public static void StartRoomGeneration()
+        private static void StartRoomGenerationPrefix()
         {
             MapValueTracker.Logger.LogDebug("Generating Started. Resetting to zero.");
             MapValueTracker.ResetValues();
@@ -19,7 +16,7 @@ namespace MapValueTracker.Patches
 
         [HarmonyPatch("GenerateDone")]
         [HarmonyPrefix]
-        public static void GenerateDonePostfix()
+        private static void GenerateDonePrefix()
         {
             MapValueTracker.Logger.LogDebug("Generating Started. Resetting to zero.");
             MapValueTracker.CheckForItems();
