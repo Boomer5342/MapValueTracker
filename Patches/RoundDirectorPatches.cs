@@ -21,6 +21,11 @@ namespace MapValueTracker.Patches
         private static TextMeshProUGUI? openValuesText;
         private static GameObject? openPanel;
         private static Image? openPanelImage;
+        private static ValueBreakdownSnapshot lastRenderedSnapshot;
+        private static bool hasRenderedSnapshot;
+        private static string lastOpenLabels = string.Empty;
+        private static string lastOpenValues = string.Empty;
+        private static string lastClosedMapText = string.Empty;
         private const float OpenPanelPaddingX = 10f;
         private const float OpenPanelPaddingY = 8f;
         private const float OpenPanelColumnGap = 16f;
@@ -243,6 +248,7 @@ namespace MapValueTracker.Patches
         private static void HideHud()
         {
             MapValueTracker.textInstance?.SetActive(false);
+            hasRenderedSnapshot = false;
         }
 
         private static void UpdateCompactHud(ValueBreakdownSnapshot snapshot)
@@ -255,7 +261,12 @@ namespace MapValueTracker.Patches
             RectTransform compactRect = MapValueTracker.valueText.rectTransform;
             SetOverlayCoordinates(compactRect, Config.Configuration.GetCompactOffset());
             MapValueTracker.valueText.fontSize = CompactHudFontSize;
-            MapValueTracker.valueText.SetText(BuildClosedMapText(snapshot));
+            string nextText = BuildClosedMapText(snapshot);
+            if (!string.Equals(lastClosedMapText, nextText))
+            {
+                MapValueTracker.valueText.SetText(nextText);
+                lastClosedMapText = nextText;
+            }
         }
 
         private static void UpdateOpenMapHud(ValueBreakdownSnapshot snapshot)
@@ -267,16 +278,24 @@ namespace MapValueTracker.Patches
 
             RectTransform panelRect = openPanelImage.rectTransform;
             SetOverlayCoordinates(panelRect, Config.Configuration.GetOpenMapOffset());
-            openLabelsText.SetText(BuildOpenMapLabels());
-            openValuesText.SetText(BuildOpenMapValues(snapshot));
-            UpdateOpenPanelLayout();
+            string labels = BuildOpenMapLabels();
+            string values = BuildOpenMapValues(snapshot);
+            bool contentChanged = !string.Equals(lastOpenLabels, labels) || !string.Equals(lastOpenValues, values);
+            if (contentChanged)
+            {
+                openLabelsText.SetText(labels);
+                openValuesText.SetText(values);
+                lastOpenLabels = labels;
+                lastOpenValues = values;
+                UpdateOpenPanelLayout();
+            }
         }
 
         [HarmonyPatch("ExtractionCompleted")]
         [HarmonyPostfix]
         public static void ExtractionComplete()
         {
-            if (!SemiFunc.RunIsLevel())
+            if (!SemiFunc.RunIsLevel() || !MapValueTracker.IsRuntimeEnabled())
             {
                 return;
             }
@@ -290,6 +309,12 @@ namespace MapValueTracker.Patches
         [HarmonyPostfix]
         public static void HaulCheckPostfix()
         {
+            if (!MapValueTracker.IsRuntimeEnabled())
+            {
+                return;
+            }
+
+            MapValueTracker.SyncExtractionState();
             MapValueTracker.MarkDirty(forceBreakdown: true);
         }
 
@@ -297,6 +322,11 @@ namespace MapValueTracker.Patches
         [HarmonyPostfix]
         public static void ExtractionCompletedAllPostfix()
         {
+            if (!MapValueTracker.IsRuntimeEnabled())
+            {
+                return;
+            }
+
             MapValueTracker.MarkDirty(forceBreakdown: true);
         }
 
@@ -304,7 +334,7 @@ namespace MapValueTracker.Patches
         [HarmonyPostfix]
         public static void UpdateHud()
         {
-            if (!SemiFunc.RunIsLevel() || RoundDirector.instance == null)
+            if (!MapValueTracker.IsRuntimeEnabled() || !SemiFunc.RunIsLevel() || RoundDirector.instance == null)
             {
                 HideHud();
                 return;
@@ -332,16 +362,25 @@ namespace MapValueTracker.Patches
             openPanel.SetActive(mapOpen);
             MapValueTracker.valueText.gameObject.SetActive(!mapOpen);
 
+            bool snapshotChanged = !hasRenderedSnapshot || !snapshot.Equals(lastRenderedSnapshot);
             if (mapOpen)
             {
-                UpdateOpenMapHud(snapshot);
+                if (snapshotChanged || !openPanel.activeSelf)
+                {
+                    UpdateOpenMapHud(snapshot);
+                }
             }
             else
             {
-                UpdateCompactHud(snapshot);
+                if (snapshotChanged || !MapValueTracker.valueText.gameObject.activeSelf)
+                {
+                    UpdateCompactHud(snapshot);
+                }
             }
 
             MapValueTracker.textInstance?.SetActive(true);
+            lastRenderedSnapshot = snapshot;
+            hasRenderedSnapshot = true;
         }
     }
 }

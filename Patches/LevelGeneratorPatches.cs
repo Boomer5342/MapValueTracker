@@ -19,7 +19,10 @@ namespace MapValueTracker.Patches
         private static void GenerateDonePrefix()
         {
             MapValueTracker.Logger.LogDebug("Generating Started. Resetting to zero.");
-            MapValueTracker.CheckForItems();
+            if (MapValueTracker.IsRuntimeEnabled())
+            {
+                MapValueTracker.CheckForItems();
+            }
             MapValueTracker.Logger.LogDebug("Generation done. Now val is " + MapValueTracker.totalValue);
         }
     }

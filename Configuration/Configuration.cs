@@ -21,6 +21,7 @@ namespace MapValueTracker.Config
         public static ConfigEntry<string> OpenMapCustomOffsetY = null!;
         public static ConfigEntry<bool> HideAfterFinalExtraction = null!;
         public static ConfigEntry<float> RefreshIntervalSeconds = null!;
+        public static ConfigEntry<bool> RuntimeEnabled = null!;
         public static ConfigEntry<bool> DebugLogging = null!;
 
         public static void Init(ConfigFile config)
@@ -108,6 +109,12 @@ namespace MapValueTracker.Config
                 new ConfigDescription(
                     "How often the valuables totals refresh during a run.",
                     new AcceptableValueRange<float>(0.1f, 5f))
+            );
+            RuntimeEnabled = config.Bind(
+                "Debug",
+                "Disable",
+                true,
+                new ConfigDescription("Enable or disable all Map Value Tracker Plus logic.")
             );
             DebugLogging = config.Bind(
                 "Internal",

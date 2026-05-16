@@ -1,3 +1,13 @@
+## - 1.2.0
+
+### Added
+- Added a `Disable` config toggle for live in-session performance testing.
+
+### Changed
+- Reworked value tracking to use cached game state instead of routine scene-wide scans.
+- Switched cart tracking to registered cart state instead of per-refresh cart discovery.
+- Reduced HUD text and layout churn by only updating when displayed values change.
+
 ## - 1.1.0
 
 ### Added
