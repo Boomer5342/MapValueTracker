@@ -48,12 +48,28 @@ namespace MapValueTracker.Patches
             rect.anchoredPosition = position;
         }
 
+        private static void ResetHudReferences()
+        {
+            MapValueTracker.textInstance = null;
+            MapValueTracker.valueText = null;
+            openPanel = null;
+            openPanelImage = null;
+            openLabelsText = null;
+            openValuesText = null;
+            hasRenderedSnapshot = false;
+            lastOpenLabels = string.Empty;
+            lastOpenValues = string.Empty;
+            lastClosedMapText = string.Empty;
+        }
+
         private static bool EnsureHud()
         {
-            if (MapValueTracker.textInstance != null && MapValueTracker.valueText != null)
+            if (MapValueTracker.textInstance && MapValueTracker.valueText && openPanel && openPanelImage && openLabelsText && openValuesText)
             {
                 return true;
             }
+
+            ResetHudReferences();
 
             GameObject hud = GameObject.Find("Game Hud");
             GameObject haul = GameObject.Find("Tax Haul");
@@ -247,7 +263,16 @@ namespace MapValueTracker.Patches
 
         private static void HideHud()
         {
-            MapValueTracker.textInstance?.SetActive(false);
+            GameObject? hudRoot = MapValueTracker.textInstance;
+            if (hudRoot != null)
+            {
+                hudRoot.SetActive(false);
+            }
+            else
+            {
+                ResetHudReferences();
+            }
+
             hasRenderedSnapshot = false;
         }
 
