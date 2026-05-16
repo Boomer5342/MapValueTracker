@@ -15,7 +15,7 @@ namespace MapValueTracker
     {
         public const string PLUGIN_GUID = "MapValueTrackerPlus";
         public const string PLUGIN_NAME = "Map Value Tracker Plus";
-        public const string PLUGIN_VERSION = "1.2.0";
+        public const string PLUGIN_VERSION = "1.2.1";
         private const float SnapshotRefreshResetTime = -100000f;
 
         public static new ManualLogSource Logger = null!;
