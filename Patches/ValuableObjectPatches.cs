@@ -1,41 +1,95 @@
-﻿using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using UnityEngine;
+using HarmonyLib;
 
 namespace MapValueTracker.Patches
 {
     [HarmonyPatch(typeof(ValuableObject))]
-    static class ValuableObjectPatches
+    internal static class ValuableObjectPatches
     {
-        [HarmonyPatch("Start")]
-        [HarmonyPostfix]
-        static void Start(ValuableObject __instance)
-        {
-            //__instance.gameObject.AddComponent<MyOnDestroy>();
-            //MapValueTracker.Logger.LogDebug("Added OnDestroy");
-        }
         [HarmonyPatch("DollarValueSetRPC")]
         [HarmonyPostfix]
-        static void DollarValueSet(ValuableObject __instance, float value)
+        private static void DollarValueSetRpcPostfix(ValuableObject __instance, float value)
         {
-            MapValueTracker.Logger.LogDebug("Created Valuable Object! " + __instance.name + " Val: " + value);
-            MapValueTracker.totalValue += value;
-            //MapValueTracker.CheckForItems();
-            MapValueTracker.Logger.LogDebug("After dollar value set Total Val: " + MapValueTracker.totalValue);
+            if (!MapValueTracker.IsRuntimeEnabled())
+            {
+                return;
+            }
+
+            LogValueCreated(__instance.name, value);
+            MapValueTracker.RegisterOrRefreshValuable(__instance);
+            LogTotalValue("After dollar value set Total Val: ");
         }
+
         [HarmonyPatch("DollarValueSetLogic")]
         [HarmonyPostfix]
-        static void DollarValueSetLogic(ValuableObject __instance)
+        private static void DollarValueSetLogicPostfix(ValuableObject __instance)
         {
-            if (SemiFunc.IsMasterClientOrSingleplayer())
+            if (!SemiFunc.IsMasterClientOrSingleplayer() || !MapValueTracker.IsRuntimeEnabled())
             {
-                MapValueTracker.Logger.LogDebug("Created Valuable Object! " + __instance.name + " Val: " + __instance.dollarValueCurrent);
-                MapValueTracker.totalValue += __instance.dollarValueCurrent;
-                //MapValueTracker.CheckForItems();
-                MapValueTracker.Logger.LogDebug("After dollar value set Total Val: " + MapValueTracker.totalValue);
+                return;
             }
+
+            float current = MapValueTracker.GetValuableCurrent(__instance);
+            LogValueCreated(__instance.name, current);
+            MapValueTracker.RegisterOrRefreshValuable(__instance);
+            LogTotalValue("After dollar value set Total Val: ");
+        }
+
+        [HarmonyPatch("AddToDollarHaulList")]
+        [HarmonyPostfix]
+        private static void AddToDollarHaulListDirectPostfix(ValuableObject __instance)
+        {
+            if (!MapValueTracker.IsRuntimeEnabled())
+            {
+                return;
+            }
+
+            MapValueTracker.AddExtractionValuable(__instance);
+        }
+
+        [HarmonyPatch("AddToDollarHaulListRPC")]
+        [HarmonyPostfix]
+        private static void AddToDollarHaulListPostfix(ValuableObject __instance)
+        {
+            if (!MapValueTracker.IsRuntimeEnabled())
+            {
+                return;
+            }
+
+            MapValueTracker.AddExtractionValuable(__instance);
+        }
+
+        [HarmonyPatch("RemoveFromDollarHaulList")]
+        [HarmonyPostfix]
+        private static void RemoveFromDollarHaulListDirectPostfix(ValuableObject __instance)
+        {
+            if (!MapValueTracker.IsRuntimeEnabled())
+            {
+                return;
+            }
+
+            MapValueTracker.RemoveExtractionValuable(__instance);
+        }
+
+        [HarmonyPatch("RemoveFromDollarHaulListRPC")]
+        [HarmonyPostfix]
+        private static void RemoveFromDollarHaulListPostfix(ValuableObject __instance)
+        {
+            if (!MapValueTracker.IsRuntimeEnabled())
+            {
+                return;
+            }
+
+            MapValueTracker.RemoveExtractionValuable(__instance);
+        }
+
+        private static void LogValueCreated(string objectName, float value)
+        {
+            MapValueTracker.Logger.LogDebug("Created Valuable Object! " + objectName + " Val: " + value);
+        }
+
+        private static void LogTotalValue(string prefix)
+        {
+            MapValueTracker.Logger.LogDebug(prefix + MapValueTracker.totalValue);
         }
     }
 }

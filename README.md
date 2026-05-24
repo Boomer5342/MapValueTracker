@@ -1,15 +1,25 @@
-This mod will show total value of the valuables on the map and by default updates in real-time as things break, or are spawned in, or extracted. Current position is the right hand side of the screen a little below the extraction goal.
+Map Value Tracker Plus keeps a running total of the valuables in a level and shows that information in a lightweight HUD that fits the current REPO UI.
 
-Is ALWAYS ON and visible by default! 
+- With the map closed, you can keep a compact one-line total on screen.
+- With the map open, the HUD switches to either a short summary or a full breakdown.
 
-To pull up map value only when pressing the Map button (Tab by default), set 'AlwaysOn' and 'UseValueRatio' to false .
+The mod works with `REPOConfig`, so the main settings can be changed in game instead of only through the config file.
 
-Can be set to only show the initial map's value and NOT update in real time by setting StartingValueOnly to true.
+Tracked values:
+- Map value
+- Remaining value (`Map - Carts - Extraction`)
+- Carts value
+- Extraction value
+- Current haul progress
 
-Configuration variables:
-- AlwaysOn set to true will keep the value always on the HUD. Overrides any other setting like UseValueRatio.
-- StartingValueOnly set to true will keep the Map Value fixed to the level's initially generated value. Will not update value in real time from breaking items, killing enemies, or extracting loot. Should not be used with UseValueRatio set to true.
-- UseValueRatio set to true will only show the map value when your remaining map value is some ratio, 'ValueRatio', of the current extraction goal. Needs 'AlwaysOn' and 'StartingValueOnly' set to false to be usable.
-- ValueRatio is the ratio of Map value to extraction goal. Ex: Configure 'AlwaysOn' to false, 'StartingValueOnly' to false, 'UseValueRatio' to true, and 'ValueRatio' to 2.0 to have it appear when remaining map value is 2x the current extraction goal.
-- UIPosition is a drop down of UI Position presets along the right side of the screen. Set to Custom and modify CustomPositionCoords to use custom coordinates.
-- CustomPositionCoords is the X and Y position of the UI element. Requires UIPosition to be set to Custom. 0.0,0.0 is bottom right corner. Default UIPosition is 0.0,225.0.
+Main settings:
+- `Show Closed Map HUD` keeps the compact valuables line visible while the map is closed.
+- `Closed Map Display` chooses whether the closed-map line shows `Map` or `Remaining`.
+- `Open Map Display` chooses `Summary` or `FullBreakdown` for the map-open layout.
+- `Match Closed Map Position` keeps the open-map HUD in the same spot as the closed-map HUD.
+- `Position Preset`, `Custom Offset X`, and `Custom Offset Y` are available for both the closed-map and open-map HUD sections.
+- `Hide After Final Extraction` hides the valuables HUD after the final extraction is done.
+- `Refresh Interval Seconds` controls how often the breakdown refreshes during a run.
+
+Credits:
+- Original mod: Tansinator - Map Value Tracker (https://github.com/tansinator/MapValueTracker)
