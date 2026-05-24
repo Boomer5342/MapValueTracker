@@ -43,7 +43,7 @@ namespace MapValueTracker.Patches
                 return;
             }
 
-            MapValueTracker.AddExtractionValuable(__instance);
+            MapValueTracker.MarkDirty();
         }
 
         [HarmonyPatch("AddToDollarHaulListRPC")]
@@ -55,7 +55,7 @@ namespace MapValueTracker.Patches
                 return;
             }
 
-            MapValueTracker.AddExtractionValuable(__instance);
+            MapValueTracker.MarkDirty();
         }
 
         [HarmonyPatch("RemoveFromDollarHaulList")]
@@ -67,7 +67,7 @@ namespace MapValueTracker.Patches
                 return;
             }
 
-            MapValueTracker.RemoveExtractionValuable(__instance);
+            MapValueTracker.MarkDirty();
         }
 
         [HarmonyPatch("RemoveFromDollarHaulListRPC")]
@@ -79,7 +79,7 @@ namespace MapValueTracker.Patches
                 return;
             }
 
-            MapValueTracker.RemoveExtractionValuable(__instance);
+            MapValueTracker.MarkDirty();
         }
 
         private static void LogValueCreated(string objectName, float value)

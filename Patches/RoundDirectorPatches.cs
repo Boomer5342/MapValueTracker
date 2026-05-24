@@ -197,7 +197,8 @@ namespace MapValueTracker.Patches
         {
             if (Config.Configuration.IsFullBreakdown())
             {
-                return "MAP\nCARTS\nEXTRACTION\nREMAINING";
+                return "MAP\nCARTS\nHAULER\nREMAINING";
+                // return "MAP\nCARTS\nHAULER\nEXTRACTION\nREMAINING";
             }
 
             return "MAP\nREMAINING\nHAUL";
@@ -210,8 +211,9 @@ namespace MapValueTracker.Patches
                 return string.Join("\n",
                     FormatCurrency(snapshot.MapValue),
                     FormatCurrency(snapshot.CartsValue),
-                    FormatCurrency(snapshot.ExtractionValue),
+                    FormatCurrency(snapshot.HaulerValue),
                     FormatCurrency(snapshot.RemainingValue));
+                    // FormatCurrency(snapshot.ExtractionValue),
             }
 
             return string.Join("\n",
@@ -339,8 +341,7 @@ namespace MapValueTracker.Patches
                 return;
             }
 
-            MapValueTracker.SyncExtractionState();
-            MapValueTracker.MarkDirty(forceBreakdown: true);
+            MapValueTracker.MarkDirty();
         }
 
         [HarmonyPatch("ExtractionCompletedAllRPC")]
@@ -352,7 +353,7 @@ namespace MapValueTracker.Patches
                 return;
             }
 
-            MapValueTracker.MarkDirty(forceBreakdown: true);
+            MapValueTracker.MarkDirty();
         }
 
         [HarmonyPatch("Update")]

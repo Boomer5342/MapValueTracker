@@ -12,6 +12,7 @@ namespace MapValueTracker
         public bool UseRemainingForPrimary;
         public float MapValue;
         public float CartsValue;
+        public float HaulerValue;
         public float ExtractionValue;
         public float RemainingValue;
         public int HaulGoal;
@@ -30,6 +31,7 @@ namespace MapValueTracker
                 && UseRemainingForPrimary == other.UseRemainingForPrimary
                 && Math.Abs(MapValue - other.MapValue) < 0.01f
                 && Math.Abs(CartsValue - other.CartsValue) < 0.01f
+                && Math.Abs(HaulerValue - other.HaulerValue) < 0.01f
                 && Math.Abs(ExtractionValue - other.ExtractionValue) < 0.01f
                 && Math.Abs(RemainingValue - other.RemainingValue) < 0.01f
                 && HaulGoal == other.HaulGoal
@@ -53,6 +55,7 @@ namespace MapValueTracker
                 hashCode = (hashCode * 397) ^ UseRemainingForPrimary.GetHashCode();
                 hashCode = (hashCode * 397) ^ MapValue.GetHashCode();
                 hashCode = (hashCode * 397) ^ CartsValue.GetHashCode();
+                hashCode = (hashCode * 397) ^ HaulerValue.GetHashCode();
                 hashCode = (hashCode * 397) ^ ExtractionValue.GetHashCode();
                 hashCode = (hashCode * 397) ^ RemainingValue.GetHashCode();
                 hashCode = (hashCode * 397) ^ HaulGoal;

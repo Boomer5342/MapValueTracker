@@ -56,6 +56,7 @@ obj/Debug/netstandard2.1/
  .NETStandard,Version=v2.1.AssemblyAttributes.cs
  MapValueTrackerPlus.AssemblyInfo.cs
 Patches/
+ ItemValuableBoxPatches.cs
  LevelGeneratorPatches.cs
  PhysGrabCartPatches.cs
  PhysGrabObjectImpactDetectorPatches.cs
