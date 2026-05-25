@@ -9,21 +9,20 @@ namespace MapValueTracker.Patches
         [HarmonyPrefix]
         private static void StartRoomGenerationPrefix()
         {
-            MapValueTracker.Logger.LogDebug("Generating Started. Resetting to zero.");
+            MapValueTracker.Logger.LogDebug("Resetting value tracker for a new level.");
             MapValueTracker.ResetValues();
-            MapValueTracker.Logger.LogDebug("Room generation started. Now val is " + MapValueTracker.totalValue);
+            MapValueTracker.Logger.LogDebug("Tracker reset complete. Total value: " + MapValueTracker.totalValue);
         }
 
         [HarmonyPatch("GenerateDone")]
         [HarmonyPrefix]
         private static void GenerateDonePrefix()
         {
-            MapValueTracker.Logger.LogDebug("Generating Started. Resetting to zero.");
             if (MapValueTracker.IsRuntimeEnabled())
             {
                 MapValueTracker.CheckForItems();
             }
-            MapValueTracker.Logger.LogDebug("Generation done. Now val is " + MapValueTracker.totalValue);
+            MapValueTracker.Logger.LogDebug("Level generation finished. Total value: " + MapValueTracker.totalValue);
         }
     }
 }

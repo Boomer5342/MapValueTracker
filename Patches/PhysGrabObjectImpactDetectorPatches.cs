@@ -16,13 +16,8 @@ namespace MapValueTracker.Patches
 
             ValuableObject? valuableObject = __instance?.GetComponent<ValuableObject>();
 
-            MapValueTracker.Logger.LogDebug("BreakRPC - Current Value: " + MapValueTracker.totalValue);
-            MapValueTracker.Logger.LogDebug("BreakRPC - Valuable Object current value: " + (valuableObject == null ? 0f : MapValueTracker.GetValuableCurrent(valuableObject)));
-            MapValueTracker.Logger.LogDebug("BreakRPC - Value lost: " + valueLost);
-
             MapValueTracker.RegisterOrRefreshValuable(valuableObject);
-
-            MapValueTracker.Logger.LogDebug("BreakRPC - After Break Value: " + MapValueTracker.totalValue);
+            MapValueTracker.Logger.LogDebug("Updated tracked value after break. Lost: " + valueLost + ", total: " + MapValueTracker.totalValue);
         }
 
         [HarmonyPatch(typeof(PhysGrabObject), "DestroyPhysGrabObjectRPC")]
@@ -46,12 +41,9 @@ namespace MapValueTracker.Patches
                 return;
             }
 
-            MapValueTracker.Logger.LogDebug("Destroying (DPGO)!");
             float current = MapValueTracker.GetValuableCurrent(valuableObject);
-            MapValueTracker.Logger.LogDebug("Destroyed Valuable Object! " + valuableObject.name + " Val: " + current);
             MapValueTracker.UnregisterValuable(valuableObject);
-
-            MapValueTracker.Logger.LogDebug("After DPGO Map Remaining Val: " + MapValueTracker.totalValue);
+            MapValueTracker.Logger.LogDebug("Removed destroyed valuable from tracking: " + valuableObject.name + " (" + current + "). Total: " + MapValueTracker.totalValue);
         }
     }
 }

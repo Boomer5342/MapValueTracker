@@ -16,7 +16,7 @@ namespace MapValueTracker.Patches
 
             LogValueCreated(__instance.name, value);
             MapValueTracker.RegisterOrRefreshValuable(__instance);
-            LogTotalValue("After dollar value set Total Val: ");
+            LogTotalValue("Total value after setup: ");
         }
 
         [HarmonyPatch("DollarValueSetLogic")]
@@ -31,7 +31,7 @@ namespace MapValueTracker.Patches
             float current = MapValueTracker.GetValuableCurrent(__instance);
             LogValueCreated(__instance.name, current);
             MapValueTracker.RegisterOrRefreshValuable(__instance);
-            LogTotalValue("After dollar value set Total Val: ");
+            LogTotalValue("Total value after setup: ");
         }
 
         [HarmonyPatch("AddToDollarHaulList")]
@@ -84,7 +84,7 @@ namespace MapValueTracker.Patches
 
         private static void LogValueCreated(string objectName, float value)
         {
-            MapValueTracker.Logger.LogDebug("Created Valuable Object! " + objectName + " Val: " + value);
+            MapValueTracker.Logger.LogDebug("Tracking valuable: " + objectName + " (" + value + ")");
         }
 
         private static void LogTotalValue(string prefix)

@@ -2,7 +2,7 @@
 	"name": "Map_Value_Tracker_Plus",
 	"version_number": "1.2.1",
 	"website_url": "https://github.com/Boomer5342/MapValueTracker",
-	"description": "Fork of Map Value Tracker by Tansinator. Adds a simplified valuables HUD and REPOConfig-friendly in-game settings.",
+	"description": "Adds a lightweight valuables HUD with in-game settings through REPOConfig.",
 	"dependencies": [
 		"BepInEx-BepInExPack-5.4.2100",
 		"nickklmao-MenuLib-2.5.3",

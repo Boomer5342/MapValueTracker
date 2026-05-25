@@ -364,10 +364,8 @@ namespace MapValueTracker
             snapshot.MapValue = Mathf.Max(0f, mapValue);
             snapshot.CartsValue = Mathf.Max(0f, cartsValue);
             snapshot.HaulerValue = Mathf.Max(0f, haulerValue);
-            snapshot.ExtractionValue = Mathf.Max(0f, extractionValue);
-            snapshot.RemainingValue = Mathf.Max(0f, snapshot.MapValue - cartsValueOutsideExtraction - haulerValueOutsideExtraction - snapshot.ExtractionValue);
-            snapshot.HaulGoal = Mathf.Max(0, currentGoal);
-            snapshot.CurrentHaul = Mathf.Max(0, GetRoundDirectorInt("currentHaul"));
+            extractionValue = Mathf.Max(0f, extractionValue);
+            snapshot.RemainingValue = Mathf.Max(0f, snapshot.MapValue - cartsValueOutsideExtraction - haulerValueOutsideExtraction - extractionValue);
             snapshot.HideAfterCompletion = hideAfterCompletion;
             snapshot.UseRemainingForPrimary = Configuration.IsClosedModeRemaining();
             snapshot.IsVisible = hasVisibleReason && !hideAfterCompletion;
