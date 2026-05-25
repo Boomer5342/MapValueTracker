@@ -359,13 +359,13 @@ namespace MapValueTracker
             bool hideAfterCompletion = Configuration.HideAfterFinalExtraction.Value && allExtractionPointsCompleted;
             bool hasVisibleReason = currentGoal != 0 || !allExtractionPointsCompleted;
 
-            ComputeBreakdownValues(out float mapValue, out float cartsValue, out float cartsValueOutsideExtraction, out float haulerValue, out float extractionValue);
+            ComputeBreakdownValues(out float mapValue, out float cartsValue, out float cartsValueOutsideExtraction, out float haulerValue, out float haulerValueOutsideExtraction, out float extractionValue);
 
             snapshot.MapValue = Mathf.Max(0f, mapValue);
             snapshot.CartsValue = Mathf.Max(0f, cartsValue);
             snapshot.HaulerValue = Mathf.Max(0f, haulerValue);
             snapshot.ExtractionValue = Mathf.Max(0f, extractionValue);
-            snapshot.RemainingValue = Mathf.Max(0f, snapshot.MapValue - cartsValueOutsideExtraction - snapshot.HaulerValue - snapshot.ExtractionValue);
+            snapshot.RemainingValue = Mathf.Max(0f, snapshot.MapValue - cartsValueOutsideExtraction - haulerValueOutsideExtraction - snapshot.ExtractionValue);
             snapshot.HaulGoal = Mathf.Max(0, currentGoal);
             snapshot.CurrentHaul = Mathf.Max(0, GetRoundDirectorInt("currentHaul"));
             snapshot.HideAfterCompletion = hideAfterCompletion;
@@ -424,10 +424,10 @@ namespace MapValueTracker
                 && Traverse.Create(RoundDirector.instance).Field(fieldName).GetValue<bool>();
         }
 
-        private static void ComputeBreakdownValues(out float mapValue, out float cartsValue, out float cartsValueOutsideExtraction, out float haulerValue, out float extractionValue)
+        private static void ComputeBreakdownValues(out float mapValue, out float cartsValue, out float cartsValueOutsideExtraction, out float haulerValue, out float haulerValueOutsideExtraction, out float extractionValue)
         {
             mapValue = Mathf.Max(0f, totalValue);
-            haulerValue = ComputeHaulerValueOutsideExtraction();
+            ComputeHaulerValues(out haulerValue, out haulerValueOutsideExtraction);
             extractionValue = Mathf.Max(0f, GetRoundDirectorInt("currentHaul"));
             ComputeCartValues(out cartsValue, out cartsValueOutsideExtraction);
         }
@@ -483,11 +483,13 @@ namespace MapValueTracker
             return raw is bool boolValue && boolValue;
         }
 
-        private static float ComputeHaulerValueOutsideExtraction()
+        private static void ComputeHaulerValues(out float haulerValue, out float haulerValueOutsideExtraction)
         {
+            haulerValue = 0f;
+            haulerValueOutsideExtraction = 0f;
             if (trackedValuableBoxes.Count == 0)
             {
-                return 0f;
+                return;
             }
 
             HashSet<ItemValuableBox>? extractionBoxes = null;
@@ -496,7 +498,6 @@ namespace MapValueTracker
                 extractionBoxes = new HashSet<ItemValuableBox>(RoundDirector.instance.valuableBoxHaulList);
             }
 
-            float sum = 0f;
             foreach (KeyValuePair<ItemValuableBox, float> entry in trackedValuableBoxes)
             {
                 ItemValuableBox valuableBox = entry.Key;
@@ -505,15 +506,12 @@ namespace MapValueTracker
                     continue;
                 }
 
-                if (extractionBoxes != null && extractionBoxes.Contains(valuableBox))
+                haulerValue += entry.Value;
+                if (extractionBoxes == null || !extractionBoxes.Contains(valuableBox))
                 {
-                    continue;
+                    haulerValueOutsideExtraction += entry.Value;
                 }
-
-                sum += entry.Value;
             }
-
-            return sum;
         }
 
         private static bool TryGetCartHaulCurrent(PhysGrabCart cart, out int value)

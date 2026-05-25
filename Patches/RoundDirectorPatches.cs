@@ -201,7 +201,8 @@ namespace MapValueTracker.Patches
                 // return "MAP\nCARTS\nHAULER\nEXTRACTION\nREMAINING";
             }
 
-            return "MAP\nREMAINING\nHAUL";
+            return "MAP\nREMAINING";
+            // return "MAP\nREMAINING\nHAUL";
         }
 
         private static string BuildOpenMapValues(ValueBreakdownSnapshot snapshot)
@@ -218,8 +219,8 @@ namespace MapValueTracker.Patches
 
             return string.Join("\n",
                 FormatCurrency(snapshot.MapValue),
-                FormatCurrency(snapshot.RemainingValue),
-                FormatHaul(snapshot.CurrentHaul, snapshot.HaulGoal));
+                FormatCurrency(snapshot.RemainingValue));
+                // FormatHaul(snapshot.CurrentHaul, snapshot.HaulGoal));
         }
 
         private static string BuildClosedMapText(ValueBreakdownSnapshot snapshot)
