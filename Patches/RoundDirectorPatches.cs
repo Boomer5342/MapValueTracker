@@ -113,7 +113,7 @@ namespace MapValueTracker.Patches
             openLabelsText = CreatePanelText("Open Map Labels", haulText, openPanel.transform, TextAlignmentOptions.TopLeft, HudLabelColor, 0.2f, 0.16f);
             openValuesText = CreatePanelText("Open Map Values", haulText, openPanel.transform, TextAlignmentOptions.TopRight, HudValueColor, 0.2f, 0.16f);
 
-            MapValueTracker.LogDebug("Created Value HUD through RoundDirector patch.");
+            MapValueTracker.LogDebug("Created value HUD.");
             return true;
         }
 
@@ -188,19 +188,14 @@ namespace MapValueTracker.Patches
             return "$" + value.ToString("N0");
         }
 
-        private static string FormatHaul(int currentHaul, int haulGoal)
-        {
-            return "$" + SemiFunc.DollarGetString(currentHaul) + " / $" + SemiFunc.DollarGetString(haulGoal);
-        }
-
         private static string BuildOpenMapLabels()
         {
             if (Config.Configuration.IsFullBreakdown())
             {
-                return "MAP\nCARTS\nEXTRACTION\nREMAINING";
+                return "MAP\nCARTS\nHAULER\nREMAINING";
             }
 
-            return "MAP\nREMAINING\nHAUL";
+            return "MAP\nREMAINING";
         }
 
         private static string BuildOpenMapValues(ValueBreakdownSnapshot snapshot)
@@ -210,14 +205,13 @@ namespace MapValueTracker.Patches
                 return string.Join("\n",
                     FormatCurrency(snapshot.MapValue),
                     FormatCurrency(snapshot.CartsValue),
-                    FormatCurrency(snapshot.ExtractionValue),
+                    FormatCurrency(snapshot.HaulerValue),
                     FormatCurrency(snapshot.RemainingValue));
             }
 
             return string.Join("\n",
                 FormatCurrency(snapshot.MapValue),
-                FormatCurrency(snapshot.RemainingValue),
-                FormatHaul(snapshot.CurrentHaul, snapshot.HaulGoal));
+                FormatCurrency(snapshot.RemainingValue));
         }
 
         private static string BuildClosedMapText(ValueBreakdownSnapshot snapshot)
@@ -325,9 +319,9 @@ namespace MapValueTracker.Patches
                 return;
             }
 
-            MapValueTracker.Logger.LogDebug("Extraction Completed!");
+            MapValueTracker.Logger.LogDebug("Extraction completed.");
             MapValueTracker.CheckForItems();
-            MapValueTracker.Logger.LogDebug("Checked after Extraction. Val is " + MapValueTracker.totalValue);
+            MapValueTracker.Logger.LogDebug("Rebuilt tracked values after extraction. Total: " + MapValueTracker.totalValue);
         }
 
         [HarmonyPatch("HaulCheck")]
@@ -339,8 +333,7 @@ namespace MapValueTracker.Patches
                 return;
             }
 
-            MapValueTracker.SyncExtractionState();
-            MapValueTracker.MarkDirty(forceBreakdown: true);
+            MapValueTracker.MarkDirty();
         }
 
         [HarmonyPatch("ExtractionCompletedAllRPC")]
@@ -352,7 +345,7 @@ namespace MapValueTracker.Patches
                 return;
             }
 
-            MapValueTracker.MarkDirty(forceBreakdown: true);
+            MapValueTracker.MarkDirty();
         }
 
         [HarmonyPatch("Update")]
