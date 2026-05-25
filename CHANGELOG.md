@@ -1,3 +1,12 @@
+## - 1.2.2
+
+### Added
+- Added a `Hauler` line to the full breakdown.
+
+### Changed
+- Removed the `Extraction` line from the full breakdown.
+- Removed the `Haul` line from the summary breakdown.
+
 ## - 1.2.0
 
 ### Added

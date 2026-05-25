@@ -1,6 +1,6 @@
 {
 	"name": "Map_Value_Tracker_Plus",
-	"version_number": "1.2.1",
+	"version_number": "1.2.2",
 	"website_url": "https://github.com/Boomer5342/MapValueTracker",
 	"description": "Adds a lightweight valuables HUD with in-game settings through REPOConfig.",
 	"dependencies": [
