@@ -1,3 +1,8 @@
+## - 1.2.3
+
+### Fixed
+- Fixed inaccurate valuable tracking when used alongside mods that modify valuable values after generation
+
 ## - 1.2.2
 
 ### Added
