@@ -39,7 +39,6 @@ namespace MapValueTracker.Patches
             }
 
             MapValueTracker.RegisterOrRefreshValuableBox(__instance);
-            MapValueTracker.RequestFullResync();
         }
 
         [HarmonyPatch("OnDisable")]
@@ -52,15 +51,6 @@ namespace MapValueTracker.Patches
             }
 
             MapValueTracker.RegisterOrRefreshValuableBox(__instance);
-            MapValueTracker.RequestFullResync();
-        }
-
-        [HarmonyPatch("OnDestroy")]
-        [HarmonyPostfix]
-        private static void OnDestroyPostfix(ItemValuableBox __instance)
-        {
-            MapValueTracker.UnregisterValuableBox(__instance);
-            MapValueTracker.RequestFullResync();
         }
     }
 }
