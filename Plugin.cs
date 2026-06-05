@@ -17,6 +17,7 @@ namespace MapValueTracker
         public const string PLUGIN_NAME = "Map Value Tracker Plus";
         public const string PLUGIN_VERSION = "1.2.2";
         private const float SnapshotRefreshResetTime = -100000f;
+        private const float PendingValuableSettleSeconds = 0.05f;
 
         public static new ManualLogSource Logger = null!;
         private readonly Harmony harmony = new Harmony("MapValueTrackerPlus.REPO");
@@ -31,6 +32,7 @@ namespace MapValueTracker
         private static readonly FieldInfo? roomVolumeCheckInExtractionPointField = AccessTools.Field(typeof(RoomVolumeCheck), "inExtractionPoint");
         private static readonly Dictionary<Type, Dictionary<string, MemberInfo?>> cachedMembers = new Dictionary<Type, Dictionary<string, MemberInfo?>>();
         private static readonly Dictionary<ValuableObject, float> trackedValuables = new Dictionary<ValuableObject, float>();
+        private static readonly Dictionary<ValuableObject, float> pendingValuables = new Dictionary<ValuableObject, float>();
         private static readonly Dictionary<ItemValuableBox, float> trackedValuableBoxes = new Dictionary<ItemValuableBox, float>();
         private static readonly HashSet<PhysGrabCart> trackedCarts = new HashSet<PhysGrabCart>();
         private static bool cartFieldWarningLogged;
@@ -73,12 +75,14 @@ namespace MapValueTracker
                 currentSnapshot = default;
                 snapshotDirty = false;
                 lastSnapshotRefreshTime = SnapshotRefreshResetTime;
+                pendingValuables.Clear();
             }
         }
 
         public static void ResetValues()
         {
             trackedValuables.Clear();
+            pendingValuables.Clear();
             trackedValuableBoxes.Clear();
             trackedCarts.Clear();
             totalValue = 0f;
@@ -132,19 +136,30 @@ namespace MapValueTracker
                 return;
             }
 
-            float currentValue = GetValuableCurrent(valuable);
             if (trackedValuables.TryGetValue(valuable, out float previousValue))
             {
+                float currentValue = GetValuableCurrent(valuable);
                 totalValue += currentValue - previousValue;
                 trackedValuables[valuable] = currentValue;
+                MarkDirty();
             }
             else
             {
-                trackedValuables[valuable] = currentValue;
-                totalValue += currentValue;
+                float now = Time.unscaledTime;
+                if (pendingValuables.TryGetValue(valuable, out float settleTime) && now >= settleTime)
+                {
+                    float currentValue = GetValuableCurrent(valuable);
+                    pendingValuables.Remove(valuable);
+                    trackedValuables[valuable] = currentValue;
+                    totalValue += currentValue;
+                    MarkDirty();
+                }
+                else
+                {
+                    pendingValuables[valuable] = now + PendingValuableSettleSeconds;
+                    MarkDirty();
+                }
             }
-
-            MarkDirty();
         }
 
         public static void UnregisterValuable(ValuableObject? valuable)
@@ -154,6 +169,7 @@ namespace MapValueTracker
                 return;
             }
 
+            pendingValuables.Remove(valuable);
             if (trackedValuables.TryGetValue(valuable, out float previousValue))
             {
                 trackedValuables.Remove(valuable);
@@ -208,13 +224,14 @@ namespace MapValueTracker
                 return default;
             }
 
-            bool mapOpen = IsMapOpen();
             float now = Time.unscaledTime;
+            EnsureSynchronizedState();
+            ProcessPendingValuables(now);
+            bool mapOpen = IsMapOpen();
             bool shouldRefresh = ShouldRefreshSnapshot(mapOpen, now);
 
             if (shouldRefresh)
             {
-                EnsureSynchronizedState();
                 currentSnapshot = BuildSnapshot(mapOpen);
                 lastSnapshotRefreshTime = now;
                 snapshotDirty = false;
@@ -261,6 +278,11 @@ namespace MapValueTracker
             {
                 ValuableObject valuable = valuables[i];
                 if (valuable == null)
+                {
+                    continue;
+                }
+
+                if (pendingValuables.ContainsKey(valuable))
                 {
                     continue;
                 }
@@ -340,6 +362,65 @@ namespace MapValueTracker
             }
 
             totalValue = Mathf.Max(0f, totalValue);
+        }
+
+        private static void ProcessPendingValuables(float now)
+        {
+            if (pendingValuables.Count == 0)
+            {
+                return;
+            }
+
+            List<ValuableObject>? readyValuables = null;
+            foreach (KeyValuePair<ValuableObject, float> entry in pendingValuables)
+            {
+                ValuableObject valuable = entry.Key;
+                if (valuable == null)
+                {
+                    readyValuables ??= new List<ValuableObject>();
+                    readyValuables.Add(valuable!);
+                    continue;
+                }
+
+                if (now >= entry.Value)
+                {
+                    readyValuables ??= new List<ValuableObject>();
+                    readyValuables.Add(valuable);
+                }
+            }
+
+            if (readyValuables == null)
+            {
+                return;
+            }
+
+            bool changed = false;
+            for (int i = 0; i < readyValuables.Count; i++)
+            {
+                ValuableObject valuable = readyValuables[i];
+                if (valuable == null)
+                {
+                    pendingValuables.Remove(valuable!);
+                    continue;
+                }
+
+                pendingValuables.Remove(valuable);
+                if (trackedValuables.ContainsKey(valuable))
+                {
+                    continue;
+                }
+
+                float currentValue = GetValuableCurrent(valuable);
+                trackedValuables[valuable] = currentValue;
+                totalValue += currentValue;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                totalValue = Mathf.Max(0f, totalValue);
+                MarkDirty();
+            }
         }
 
         private static ValueBreakdownSnapshot BuildSnapshot(bool mapOpen)

@@ -17,6 +17,7 @@ namespace MapValueTracker.Patches
             ValuableObject? valuableObject = __instance?.GetComponent<ValuableObject>();
 
             MapValueTracker.RegisterOrRefreshValuable(valuableObject);
+            MapValueTracker.RequestFullResync();
             MapValueTracker.Logger.LogDebug("Updated tracked value after break. Lost: " + valueLost + ", total: " + MapValueTracker.totalValue);
         }
 
@@ -43,6 +44,7 @@ namespace MapValueTracker.Patches
 
             float current = MapValueTracker.GetValuableCurrent(valuableObject);
             MapValueTracker.UnregisterValuable(valuableObject);
+            MapValueTracker.RequestFullResync();
             MapValueTracker.Logger.LogDebug("Removed destroyed valuable from tracking: " + valuableObject.name + " (" + current + "). Total: " + MapValueTracker.totalValue);
         }
     }
